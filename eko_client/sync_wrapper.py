@@ -21,7 +21,10 @@ The decorator:
 - Finds all methods ending with '_async'
 - Creates a sync version without the '_async' suffix
 - Preserves the async method's signature, docstring, and annotations
-- Uses a persistent event loop per instance for proper connection pooling
+- Automatically detects environment (Jupyter vs scripts)
+- Uses nest_asyncio in Jupyter for compatibility
+- Uses persistent event loop in scripts for connection pooling
+- Works seamlessly in all environments without user configuration
 """
 
 import asyncio
@@ -37,26 +40,44 @@ def _create_sync_wrapper(async_method: Callable) -> Callable:
     """
     Create a synchronous wrapper for an async method.
 
-    Uses a persistent event loop per instance to support multiple
-    sequential calls and proper connection pooling.
+    Automatically detects the environment and uses the appropriate approach:
+    - In Jupyter/IPython: Uses running loop with nest_asyncio for compatibility
+    - In scripts: Uses persistent event loop per instance for connection pooling
 
     Args:
         async_method: The async method to wrap
 
     Returns:
-        A synchronous wrapper function that uses the instance's event loop
+        A synchronous wrapper function that works in all environments
     """
     @wraps(async_method)
     def sync_wrapper(self, *args, **kwargs):
-        # Get or create persistent event loop for this instance
-        if not hasattr(self, '_sync_loop'):
-            self._sync_loop = asyncio.new_event_loop()
-            self._sync_loop_refs = 0
+        try:
+            # Check if we're running in an environment with an active event loop
+            # (Jupyter, IPython, async frameworks, etc.)
+            loop = asyncio.get_running_loop()
 
-        # Run the async method on the persistent loop
-        return self._sync_loop.run_until_complete(
-            async_method(self, *args, **kwargs)
-        )
+            # We're in an async environment - apply nest_asyncio for compatibility
+            # This is safe to call multiple times (idempotent)
+            import nest_asyncio
+            nest_asyncio.apply()
+
+            # Run on the existing loop
+            return loop.run_until_complete(
+                async_method(self, *args, **kwargs)
+            )
+
+        except RuntimeError:
+            # No running loop - we're in a regular Python script
+            # Use persistent event loop per instance for proper connection pooling
+            if not hasattr(self, '_sync_loop'):
+                self._sync_loop = asyncio.new_event_loop()
+                self._sync_loop_refs = 0
+
+            # Run the async method on the persistent loop
+            return self._sync_loop.run_until_complete(
+                async_method(self, *args, **kwargs)
+            )
 
     # Preserve the original docstring or create a simple one
     if async_method.__doc__:
