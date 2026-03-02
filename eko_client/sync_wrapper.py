@@ -15,13 +15,13 @@ Usage:
     # Automatically creates:
     # def fetch_data(self, param: str) -> dict:
     #     '''Sync wrapper for fetch_data_async.'''
-    #     return asyncio.run(self.fetch_data_async(param))
+    #     return self._run_sync(self.fetch_data_async(param))
 
 The decorator:
 - Finds all methods ending with '_async'
 - Creates a sync version without the '_async' suffix
 - Preserves the async method's signature, docstring, and annotations
-- Uses asyncio.run() to execute the async method synchronously
+- Uses a persistent event loop per instance for proper connection pooling
 """
 
 import asyncio
@@ -37,15 +37,26 @@ def _create_sync_wrapper(async_method: Callable) -> Callable:
     """
     Create a synchronous wrapper for an async method.
 
+    Uses a persistent event loop per instance to support multiple
+    sequential calls and proper connection pooling.
+
     Args:
         async_method: The async method to wrap
 
     Returns:
-        A synchronous wrapper function that calls asyncio.run()
+        A synchronous wrapper function that uses the instance's event loop
     """
     @wraps(async_method)
     def sync_wrapper(self, *args, **kwargs):
-        return asyncio.run(async_method(self, *args, **kwargs))
+        # Get or create persistent event loop for this instance
+        if not hasattr(self, '_sync_loop'):
+            self._sync_loop = asyncio.new_event_loop()
+            self._sync_loop_refs = 0
+
+        # Run the async method on the persistent loop
+        return self._sync_loop.run_until_complete(
+            async_method(self, *args, **kwargs)
+        )
 
     # Preserve the original docstring or create a simple one
     if async_method.__doc__:
@@ -69,11 +80,13 @@ def auto_sync_wrapper(cls: type[T]) -> type[T]:
     2. Finds methods ending with '_async'
     3. Creates a synchronous wrapper method without the '_async' suffix
     4. Adds the sync wrapper to the class
+    5. Adds a close_sync_loop() method for cleanup
 
     The sync wrapper:
     - Has the same signature as the async method
     - Has the same docstring as the async method
-    - Calls asyncio.run() on the async method
+    - Uses a persistent event loop per instance
+    - Supports multiple sequential calls
 
     Args:
         cls: The class to decorate
@@ -91,8 +104,27 @@ def auto_sync_wrapper(cls: type[T]) -> type[T]:
         # Automatically creates:
         # def get_user(self, user_id: str) -> dict:
         #     '''Fetch user by ID.'''
-        #     return asyncio.run(self.get_user_async(user_id))
+        #     return self._sync_loop.run_until_complete(
+        #         self.get_user_async(user_id)
+        #     )
+
+        # Multiple calls work:
+        client = MyClient()
+        user1 = client.get_user('123')  # Works
+        user2 = client.get_user('456')  # Works too!
     """
+    # Add cleanup method for the persistent event loop
+    def close_sync_loop(self):
+        """Close the persistent event loop used for sync methods."""
+        if hasattr(self, '_sync_loop') and self._sync_loop:
+            if not self._sync_loop.is_closed():
+                self._sync_loop.close()
+            self._sync_loop = None
+
+    # Add the cleanup method if it doesn't exist
+    if not hasattr(cls, 'close_sync_loop'):
+        setattr(cls, 'close_sync_loop', close_sync_loop)
+
     # Iterate through all attributes of the class
     for attr_name in dir(cls):
         # Skip private/magic methods and non-async methods
