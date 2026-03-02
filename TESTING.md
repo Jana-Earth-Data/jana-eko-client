@@ -133,6 +133,7 @@ Some endpoints may timeout on the dev environment due to:
 - Dataset: Production snapshot
 - Instance: t3.small (limited resources)
 - Timeouts: Expected on heavy aggregations
+- **Note**: Both sync and async methods work correctly
 
 ### Production (api.jana.earth)
 - Credentials: Your production account
@@ -169,7 +170,9 @@ pip install git+https://github.com/Jana-Earth-Data/jana-eko-client.git
 
 ## Manual Testing
 
-For quick manual tests:
+For quick manual tests (both sync and async methods work):
+
+### Synchronous (Traditional Python):
 
 ```python
 from eko_client import EkoUserClient
@@ -181,7 +184,8 @@ client = EkoUserClient(
     password="your-password"
 )
 
-# Test a specific endpoint
+# Multiple sync calls work correctly
+health = client.get_health()
 locations = client.get_openaq_locations(country_codes="USA", limit=5)
 print(f"Found {len(locations['results'])} locations")
 
@@ -192,6 +196,34 @@ try:
     client.get_openaq_locations(location_id=999999)
 except EkoNotFoundError:
     print("Location not found (expected)")
+
+# Clean up (optional)
+client.close_sync_loop()
+```
+
+### Asynchronous (Async/Await):
+
+```python
+import asyncio
+from eko_client import EkoUserClient
+
+async def main():
+    client = EkoUserClient(
+        base_url="https://api-dev.jana.earth",
+        username="dev-user",
+        password="your-password"
+    )
+
+    # Multiple async calls work perfectly
+    health = await client.get_health_async()
+    locations = await client.get_openaq_locations_async(
+        country_codes="USA", limit=5
+    )
+    print(f"Found {len(locations['results'])} locations")
+
+    await client.close_async()
+
+asyncio.run(main())
 ```
 
 ## Continuous Integration
