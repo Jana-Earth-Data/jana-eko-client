@@ -171,6 +171,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
     async def get_correlations_async(
         self,
         sources: List[str],
+        country_codes: Optional[List[str]] = None,
         parameters: Optional[List[str]] = None,
         correlation_type: Optional[str] = None,
         location_bbox: Optional[List[float]] = None,
@@ -185,6 +186,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
 
         Args:
             sources: Data sources for correlation (minimum 2)
+            country_codes: ISO 3-letter country codes (required by API)
             parameters: Parameters to correlate
             correlation_type: Type of correlation (spatial, temporal, parameter, sector)
             location_bbox: Geographic area for analysis
@@ -199,6 +201,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
         """
         params = {
             'sources': sources,
+            'country_codes': country_codes,
             'parameters': parameters,
             'correlation_type': correlation_type,
             'location_bbox': location_bbox,
@@ -429,14 +432,18 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
             Export response dictionary with export_id
         """
         json_data = {
-            'format': format,
-            'query': query,
-            'compression': compression,
-            'chunk_size': chunk_size,
-            'email_notification': email_notification,
-            'expires_in_hours': expires_in_hours,
+            'query_params': query,
+            'export_format': format,
         }
-        return await self._request_async('POST', '/api/v1/esg/export/', json_data=json_data)
+        if compression is not None:
+            json_data['compression'] = compression
+        if chunk_size is not None:
+            json_data['chunk_size'] = chunk_size
+        if email_notification is not None:
+            json_data['email_notification'] = email_notification
+        if expires_in_hours is not None:
+            json_data['expires_in_hours'] = expires_in_hours
+        return await self._request_async('POST', '/api/v1/esg/exports/', json_data=json_data)
 
     async def get_export_status_async(self, export_id: str) -> Dict[str, Any]:
         """
@@ -448,7 +455,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
         Returns:
             Export status response dictionary
         """
-        endpoint = f'/api/v1/esg/export/{export_id}/status/'
+        endpoint = f'/api/v1/esg/exports/{export_id}/status/'
         return await self._request_async('GET', endpoint)
 
     async def download_export_async(self, export_id: str) -> bytes:
@@ -461,7 +468,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
         Returns:
             Export file content as bytes
         """
-        endpoint = f'/api/v1/esg/export/{export_id}/download/'
+        endpoint = f'/api/v1/esg/exports/{export_id}/download/'
         url = build_url(self.base_url, endpoint)
         headers = self._get_headers()
 
@@ -506,7 +513,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
             'sources': sources,
             'parameter_types': parameter_types,
         }
-        return await self._request_async('GET', '/api/v1/esg/definitions/parameters/', params=params)
+        return await self._request_async('GET', '/api/v1/esg/parameters/', params=params)
 
     async def get_unit_definitions_async(self) -> Dict[str, Any]:
         """
@@ -560,6 +567,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
     async def get_sectors_async(
         self,
         sources: Optional[List[str]] = None,
+        country_codes: Optional[List[str]] = None,
         limit: Optional[int] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
@@ -569,6 +577,7 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
 
         Args:
             sources: List of data sources to include ['climatetrace', 'edgar'] (default: all)
+            country_codes: ISO 3-letter country codes (required when sources includes 'climatetrace')
             limit: Maximum number of results (default: 1000)
             date_from: Filter Climate TRACE sectors to those with data from this date (ISO format)
             date_to: Filter Climate TRACE sectors to those with data until this date (ISO format)
@@ -579,6 +588,8 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
         params = {}
         if sources:
             params['sources'] = sources  # format_query_params will handle the list
+        if country_codes:
+            params['country_codes'] = country_codes
         if limit:
             params['limit'] = limit
         if date_from:
