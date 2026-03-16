@@ -144,14 +144,14 @@ def test_data_endpoints(client):
     except Exception as e:
         print_result(False, f"get_locations failed: {e}")
     
-    # Test get_parameter_definitions (use existing parameters endpoint)
-    print("\n3. Testing get_parameters (unified endpoint)...")
+    # Test get_parameter_definitions (use /api/v1/esg/parameters/)
+    print("\n3. Testing get_parameter_definitions...")
     try:
-        params = client._request_sync('GET', '/api/v1/esg/parameters/')
+        params = client.get_parameter_definitions()
         param_count = len(params.get('results', [])) if isinstance(params.get('results'), list) else 0
-        print_result(True, f"Parameters retrieved: {param_count} parameters")
+        print_result(True, f"Parameter definitions retrieved: {param_count} parameters")
     except Exception as e:
-        print_result(False, f"get_parameters failed: {e}")
+        print_result(False, f"get_parameter_definitions failed: {e}")
 
 
 def test_source_specific_endpoints(client):
