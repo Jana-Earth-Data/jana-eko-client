@@ -40,12 +40,18 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
     - Async methods end with '_async' suffix (e.g., get_data_async)
     - Sync methods are auto-generated without the suffix (e.g., get_data)
 
-    Example:
+    Example (single URL — all requests go to one host):
         >>> client = EkoUserClient(base_url="https://api.jana.com")
         >>> client.login_device()  # opens browser for OAuth 2.0 device code flow
-        >>> # or: client.login_password("user@example.com", "secret")
-        >>> data = client.get_data(sources=["openaq", "climatetrace"])  # Sync version (auto-generated)
-        >>> data = await client.get_data_async(sources=["openaq", "climatetrace"])  # Async version
+        >>> data = client.get_data(sources=["openaq", "climatetrace"])
+
+    Example (dual URL — auth and data on separate hosts):
+        >>> client = EkoUserClient(
+        ...     base_url="https://auth-dev.jana.earth",      # auth endpoints
+        ...     api_base_url="https://api-dev.jana.earth",    # data/ESG endpoints
+        ... )
+        >>> client.login_device()       # -> auth-dev.jana.earth/api/auth/device-code/
+        >>> data = client.get_data(...)  # -> api-dev.jana.earth/api/v1/esg/data/
     """
 
     # =============================================================================

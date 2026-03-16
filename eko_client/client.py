@@ -23,9 +23,14 @@ logger = logging.getLogger(__name__)
 class BaseEkoClient:
     """Base client with common functionality for async and sync operations."""
     
+    # Auth endpoint prefixes — requests matching these use base_url (auth service).
+    # Everything else uses api_base_url (data service) when provided.
+    _AUTH_PREFIXES = ("/api/auth/",)
+
     def __init__(
         self,
         base_url: str,
+        api_base_url: Optional[str] = None,
         token: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
@@ -34,9 +39,14 @@ class BaseEkoClient:
     ):
         """
         Initialize base client.
-        
+
         Args:
-            base_url: API base URL (e.g., 'http://localhost:8000')
+            base_url: API base URL for auth endpoints (e.g., 'https://auth-dev.jana.earth').
+                When api_base_url is not set, this is used for all requests.
+            api_base_url: Optional separate base URL for data/ESG endpoints
+                (e.g., 'https://api-dev.jana.earth'). When set, auth endpoints
+                (``/api/auth/...``) continue to use base_url while all other
+                requests are sent to api_base_url.
             token: Authentication token (if available)
             username: Username for login (if token not provided)
             password: Password for login (if token not provided)
@@ -44,6 +54,7 @@ class BaseEkoClient:
             verify_ssl: Whether to verify SSL certificates
         """
         self.base_url = base_url.rstrip('/')
+        self.api_base_url = api_base_url.rstrip('/') if api_base_url else None
         self.token = token
         self.username = username
         self.password = password
@@ -80,6 +91,19 @@ class BaseEkoClient:
             )
         return self._sync_client
     
+    def _resolve_base_url(self, endpoint: str) -> str:
+        """Return the correct base URL for the given endpoint.
+
+        Auth endpoints (``/api/auth/...``) always use ``self.base_url``.
+        All other endpoints use ``self.api_base_url`` when it is set,
+        falling back to ``self.base_url`` otherwise.
+        """
+        if self.api_base_url and not any(
+            endpoint.startswith(prefix) for prefix in self._AUTH_PREFIXES
+        ):
+            return self.api_base_url
+        return self.base_url
+
     def _get_headers(self) -> Dict[str, str]:
         """Get default headers including authentication."""
         headers = {
@@ -119,13 +143,13 @@ class BaseEkoClient:
             EkoRateLimitError: If rate limit is exceeded
             EkoNotFoundError: If resource not found
         """
-        url = build_url(self.base_url, endpoint)
+        url = build_url(self._resolve_base_url(endpoint), endpoint)
         headers = self._get_headers()
-        
+
         # Format query parameters
         if params:
             params = format_query_params(params)
-        
+
         async with self._async_lock:
             client = self._get_async_client()
             
@@ -171,13 +195,13 @@ class BaseEkoClient:
             EkoRateLimitError: If rate limit is exceeded
             EkoNotFoundError: If resource not found
         """
-        url = build_url(self.base_url, endpoint)
+        url = build_url(self._resolve_base_url(endpoint), endpoint)
         headers = self._get_headers()
-        
+
         # Format query parameters
         if params:
             params = format_query_params(params)
-        
+
         with self._sync_lock:
             client = self._get_sync_client()
             
