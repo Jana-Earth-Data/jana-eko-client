@@ -5,7 +5,7 @@ Eko User Client - End-user client for unified API access.
 from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from .client import BaseEkoClient
-from .auth import AuthMixin
+from .jwt_auth import JwtAuthMixin
 from .utils import build_url
 from .sync_wrapper import auto_sync_wrapper
 from .models import (
@@ -29,7 +29,7 @@ from .models import (
 
 
 @auto_sync_wrapper
-class EkoUserClient(AuthMixin, BaseEkoClient):
+class EkoUserClient(JwtAuthMixin, BaseEkoClient):
     """
     End-user client for accessing unified environmental data APIs.
 
@@ -41,7 +41,9 @@ class EkoUserClient(AuthMixin, BaseEkoClient):
     - Sync methods are auto-generated without the suffix (e.g., get_data)
 
     Example:
-        >>> client = EkoUserClient(base_url="http://localhost:8000", token="...")
+        >>> client = EkoUserClient(base_url="https://api.jana.com")
+        >>> client.login_device()  # opens browser for OAuth 2.0 device code flow
+        >>> # or: client.login_password("user@example.com", "secret")
         >>> data = client.get_data(sources=["openaq", "climatetrace"])  # Sync version (auto-generated)
         >>> data = await client.get_data_async(sources=["openaq", "climatetrace"])  # Async version
     """
