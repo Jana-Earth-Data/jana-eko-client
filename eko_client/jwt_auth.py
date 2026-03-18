@@ -400,12 +400,19 @@ class JwtAuthMixin:
     # ------------------------------------------------------------------
 
     def get_user_info(self) -> dict:
-        """Return the authenticated user's profile from ``/api/auth/user/``."""
-        return self._request_sync("GET", "/api/auth/user/")
+        """Return the authenticated user's profile from ``/api/auth/user/``.
+
+        Unwraps ``data`` if the API returns ``{"data": {"username": ..., "email": ...}}``,
+        so callers can use ``user_info.get("username")`` / ``user_info.get("email")``
+        regardless of response shape.
+        """
+        response = self._request_sync("GET", "/api/auth/user/")
+        return response.get("data") or response
 
     async def get_user_info_async(self) -> dict:
         """Async version of :meth:`get_user_info`."""
-        return await self._request_async("GET", "/api/auth/user/")
+        response = await self._request_async("GET", "/api/auth/user/")
+        return response.get("data") or response
 
     # ------------------------------------------------------------------
     # Helpers
