@@ -14,7 +14,6 @@ by the base client.
 import asyncio
 import logging
 import time
-import webbrowser
 from typing import Optional
 
 from .exceptions import EkoAPIError, EkoAuthenticationError
@@ -177,12 +176,14 @@ class JwtAuthMixin:
         )
 
         # Step 2 — prompt user to log in and approve via the Jana web app
+        # Do not auto-open: user may need to open in private/incognito window for a
+        # fresh login (avoids cached session that skips the login form).
         print(
             f"\nOpen the following URL in your browser to log in and authorize this device:\n"
             f"  {verify_url}\n"
-            f"\nWaiting for you to approve in the browser..."
+            f"\nTip: Open in a private/incognito window if you need to log in fresh.\n"
+            f"Waiting for you to approve in the browser..."
         )
-        webbrowser.open(verify_url)
 
         # Step 3 — poll device-token (public endpoint, no auth) until approved.
         # The access_token is returned here once the user approves in the browser.
@@ -249,12 +250,14 @@ class JwtAuthMixin:
         )
 
         # Step 2 — prompt user to log in and approve via the Jana web app
+        # Do not auto-open: user may need to open in private/incognito window for a
+        # fresh login (avoids cached session that skips the login form).
         print(
             f"\nOpen the following URL in your browser to log in and authorize this device:\n"
             f"  {verify_url}\n"
-            f"\nWaiting for you to approve in the browser..."
+            f"\nTip: Open in a private/incognito window if you need to log in fresh.\n"
+            f"Waiting for you to approve in the browser..."
         )
-        webbrowser.open(verify_url)
 
         # Step 3 — poll device-token (public endpoint, no auth) until approved.
         # The access_token is returned here once the user approves in the browser.
@@ -367,12 +370,33 @@ class JwtAuthMixin:
     # Auto-refresh request wrappers
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _is_auth_failure(exc: Exception) -> bool:
+        """Check if an exception represents an authentication failure.
+
+        Matches both 401 (``EkoAuthenticationError``) and 403 responses whose
+        body contains a JWT-related error message.  The server returns 403
+        (not 401) for expired/invalid JWTs due to DRF's ``AuthenticationFailed``
+        interaction with ``AllowAny`` permission classes.
+        """
+        if isinstance(exc, EkoAuthenticationError):
+            return True
+        if isinstance(exc, EkoAPIError) and exc.status_code == 403:
+            msg = str(exc.message).lower() if exc.message else ""
+            data = exc.response_data or {}
+            detail = str(data.get("detail", "")).lower()
+            return any(
+                kw in msg or kw in detail
+                for kw in ("token", "jwt", "expired", "credentials")
+            )
+        return False
+
     def _request_sync(self, method: str, endpoint: str, **kwargs):
-        """Override: on 401, refresh the access token and retry once."""
+        """Override: on auth failure (401 or JWT-related 403), refresh and retry once."""
         try:
             return super()._request_sync(method, endpoint, **kwargs)
-        except EkoAuthenticationError:
-            if self.refresh_token and not getattr(self, "_refreshing", False):
+        except (EkoAuthenticationError, EkoAPIError) as exc:
+            if self._is_auth_failure(exc) and self.refresh_token and not getattr(self, "_refreshing", False):
                 self._refreshing = True
                 try:
                     self.refresh_jwt()
@@ -382,11 +406,11 @@ class JwtAuthMixin:
             raise
 
     async def _request_async(self, method: str, endpoint: str, **kwargs):
-        """Override: on 401, refresh the access token and retry once."""
+        """Override: on auth failure (401 or JWT-related 403), refresh and retry once."""
         try:
             return await super()._request_async(method, endpoint, **kwargs)
-        except EkoAuthenticationError:
-            if self.refresh_token and not getattr(self, "_refreshing", False):
+        except (EkoAuthenticationError, EkoAPIError) as exc:
+            if self._is_auth_failure(exc) and self.refresh_token and not getattr(self, "_refreshing", False):
                 self._refreshing = True
                 try:
                     await self.refresh_jwt_async()
