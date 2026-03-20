@@ -775,17 +775,31 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         asset_id: Optional[int] = None,
         sector_id: Optional[int] = None,
         sector_name: Optional[str] = None,
+        country_code: Optional[str] = None,
         gas: Optional[str] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get Climate TRACE emissions."""
+        """Get Climate TRACE emissions.
+
+        Args:
+            asset_id: Filter by asset ID
+            sector_id: Filter by sector ID
+            sector_name: Filter by sector name
+            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
+            gas: Filter by gas type
+            date_from: Start date filter
+            date_to: End date filter
+            limit: Maximum results per page
+            offset: Result offset for pagination
+        """
         params = {
             'asset_id': asset_id,
             'sector_id': sector_id,
             'sector_name': sector_name,
+            'country_code': country_code,
             'gas': gas,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
             'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
@@ -794,53 +808,128 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         }
         return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/', params=params)
 
-    async def get_climatetrace_emissions_date_range_async(self) -> Dict[str, Any]:
+    async def get_climatetrace_emissions_date_range_async(
+        self,
+        country_code: Optional[str] = None,
+        sector_name: Optional[str] = None,
+        gas: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Get the minimum and maximum start_time dates for Climate TRACE emissions.
         Uses SQL MIN/MAX aggregation for efficient date range detection.
 
+        Args:
+            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
+            sector_name: Filter by sector name
+            gas: Filter by gas type
+
         Returns:
             Dictionary with 'earliest_date', 'latest_date', and 'total_records'
         """
-        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/date_range/')
+        params = {'country_code': country_code, 'sector_name': sector_name, 'gas': gas}
+        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/date_range/', params=params)
 
-    async def get_climatetrace_emissions_totals_async(self) -> Dict[str, Any]:
+    async def get_climatetrace_emissions_totals_async(
+        self,
+        country_code: Optional[str] = None,
+        sector_name: Optional[str] = None,
+        gas: Optional[str] = None,
+        date_from: Optional[Union[str, datetime]] = None,
+        date_to: Optional[Union[str, datetime]] = None,
+    ) -> Dict[str, Any]:
         """
-        Get global emission totals using SQL SUM aggregation.
+        Get emission totals using SQL SUM aggregation.
+
+        When filters are provided, the API performs live aggregation against
+        the filtered queryset. Without filters, it reads from a materialized view.
+
+        Args:
+            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
+            sector_name: Filter by sector name
+            gas: Filter by gas type
+            date_from: Start date filter
+            date_to: End date filter
 
         Returns:
             Dictionary with 'total_co2e', 'total_co2', 'total_ch4', 'total_n2o',
             'record_count', and 'avg_co2e'
         """
-        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/totals/')
+        params = {
+            'country_code': country_code,
+            'sector_name': sector_name,
+            'gas': gas,
+            'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
+            'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/totals/', params=params)
 
-    async def get_climatetrace_emissions_sector_totals_async(self) -> Dict[str, Any]:
+    async def get_climatetrace_emissions_sector_totals_async(
+        self,
+        country_code: Optional[str] = None,
+        gas: Optional[str] = None,
+        date_from: Optional[Union[str, datetime]] = None,
+        date_to: Optional[Union[str, datetime]] = None,
+    ) -> Dict[str, Any]:
         """
         Get emissions grouped by sector using SQL GROUP BY aggregation.
+
+        Args:
+            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
+            gas: Filter by gas type
+            date_from: Start date filter
+            date_to: End date filter
 
         Returns:
             List of dictionaries with 'sector_name', 'total_co2e', 'record_count', 'unique_assets'
         """
-        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/sector_totals/')
+        params = {
+            'country_code': country_code,
+            'gas': gas,
+            'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
+            'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/sector_totals/', params=params)
 
-    async def get_climatetrace_emissions_country_totals_async(self) -> Dict[str, Any]:
+    async def get_climatetrace_emissions_country_totals_async(
+        self,
+        gas: Optional[str] = None,
+        date_from: Optional[Union[str, datetime]] = None,
+        date_to: Optional[Union[str, datetime]] = None,
+    ) -> Dict[str, Any]:
         """
         Get emissions grouped by country using SQL GROUP BY aggregation.
+
+        Args:
+            gas: Filter by gas type
+            date_from: Start date filter
+            date_to: End date filter
 
         Returns:
             List of dictionaries with 'country_iso3', 'total_co2e', 'record_count', 'unique_assets'
         """
-        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/country_totals/')
+        params = {
+            'gas': gas,
+            'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
+            'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/country_totals/', params=params)
 
-    async def get_climatetrace_emissions_gas_type_distribution_async(self) -> Dict[str, Any]:
+    async def get_climatetrace_emissions_gas_type_distribution_async(
+        self,
+        country_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Get distribution of gas types across all emissions using SQL GROUP BY.
+
+        Args:
+            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
 
         Returns:
             Dictionary with 'total_records' and 'gas_types' list containing
             'gas', 'record_count', 'percentage' for each gas type
         """
-        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/gas_type_distribution/')
+        params = {'country_code': country_code}
+        return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/gas_type_distribution/', params=params)
 
     async def get_climatetrace_company_matches_async(
         self,

@@ -6,7 +6,8 @@ import asyncio
 import threading
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
+from urllib.parse import urlparse, parse_qs
 import httpx
 from .exceptions import (
     EkoClientError,
@@ -290,6 +291,142 @@ class BaseEkoClient:
             logger.warning(f"Error response is not valid JSON: {e}. Status: {response.status_code}")
             return {'error': response.text or f'HTTP {response.status_code}'}
     
+    # =========================================================================
+    # Pagination helpers
+    # =========================================================================
+
+    async def fetch_all_pages_async(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        *,
+        page_size: int = 1000,
+        max_pages: int = 1000,
+        progress: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch all pages of a paginated endpoint, following cursor ``next`` URLs.
+
+        Works with both CursorPagination (follows ``next`` URL) and
+        LimitOffsetPagination (increments ``offset``). Automatically detects
+        which style the API uses based on the response.
+
+        Args:
+            endpoint: API endpoint path (e.g., '/api/v1/data-sources/climatetrace/emissions/')
+            params: Initial query parameters (filters, etc.)
+            page_size: Number of records per page (default 1000, the API max for most endpoints)
+            max_pages: Safety limit on number of pages to fetch (default 1000)
+            progress: If True, print progress messages
+
+        Returns:
+            List of all result dictionaries across all pages
+        """
+        all_results: List[Dict[str, Any]] = []
+        params = dict(params or {})
+        params['limit'] = page_size
+        page = 0
+
+        # First request uses the endpoint + params
+        response = await self._request_async('GET', endpoint, params=params)
+
+        while True:
+            page += 1
+            results = response.get('results', [])
+            if not results:
+                break
+            all_results.extend(results)
+
+            total = response.get('count')
+            if progress:
+                if total:
+                    logger.info("Page %d: %d/%d records", page, len(all_results), total)
+                else:
+                    logger.info("Page %d: %d records so far", page, len(all_results))
+
+            # Stop conditions
+            if total and len(all_results) >= total:
+                break
+            if page >= max_pages:
+                logger.warning("Reached max_pages=%d, stopping", max_pages)
+                break
+
+            # Follow cursor next URL if present (CursorPagination)
+            next_url = response.get('next')
+            if next_url:
+                # Extract the path + query from the full URL and make a raw request
+                parsed = urlparse(next_url)
+                next_endpoint = parsed.path
+                # Parse query string into flat dict
+                next_params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
+                response = await self._request_async('GET', next_endpoint, params=next_params)
+            else:
+                # No next URL and count not reached -- we're done
+                break
+
+        return all_results
+
+    def fetch_all_pages(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        *,
+        page_size: int = 1000,
+        max_pages: int = 1000,
+        progress: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Synchronous version of :meth:`fetch_all_pages_async`.
+
+        Fetch all pages of a paginated endpoint, following cursor ``next`` URLs.
+
+        Args:
+            endpoint: API endpoint path
+            params: Initial query parameters (filters, etc.)
+            page_size: Records per page (default 1000)
+            max_pages: Safety limit on pages (default 1000)
+            progress: Print progress messages
+
+        Returns:
+            List of all result dictionaries across all pages
+        """
+        all_results: List[Dict[str, Any]] = []
+        params = dict(params or {})
+        params['limit'] = page_size
+        page = 0
+
+        response = self._request_sync('GET', endpoint, params=params)
+
+        while True:
+            page += 1
+            results = response.get('results', [])
+            if not results:
+                break
+            all_results.extend(results)
+
+            total = response.get('count')
+            if progress:
+                if total:
+                    logger.info("Page %d: %d/%d records", page, len(all_results), total)
+                else:
+                    logger.info("Page %d: %d records so far", page, len(all_results))
+
+            if total and len(all_results) >= total:
+                break
+            if page >= max_pages:
+                logger.warning("Reached max_pages=%d, stopping", max_pages)
+                break
+
+            next_url = response.get('next')
+            if next_url:
+                parsed = urlparse(next_url)
+                next_endpoint = parsed.path
+                next_params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
+                response = self._request_sync('GET', next_endpoint, params=next_params)
+            else:
+                break
+
+        return all_results
+
     def login(self, username: str, password: str) -> str:
         """
         Login and get authentication token.
