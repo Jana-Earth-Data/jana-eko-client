@@ -14,6 +14,7 @@ by the base client.
 import asyncio
 import logging
 import time
+import webbrowser
 from typing import Optional
 
 from .exceptions import EkoAPIError, EkoAuthenticationError, EkoSessionExpiredError
@@ -175,15 +176,18 @@ class JwtAuthMixin:
             or issue_data.get("verification_uri", "")
         )
 
-        # Step 2 — prompt user to log in and approve via the Jana web app
-        # Do not auto-open: user may need to open in private/incognito window for a
-        # fresh login (avoids cached session that skips the login form).
+        # Step 2 — open browser and prompt user to log in and approve
         print(
-            f"\nOpen the following URL in your browser to log in and authorize this device:\n"
+            f"\nOpening browser to log in and authorize this device...\n"
             f"  {verify_url}\n"
-            f"\nTip: Open in a private/incognito window if you need to log in fresh.\n"
+            f"\nIf the browser didn't open, copy the URL above into your browser.\n"
+            f"Tip: Use a private/incognito window if you need to log in fresh.\n"
             f"Waiting for you to approve in the browser..."
         )
+        try:
+            webbrowser.open(verify_url)
+        except Exception:
+            pass  # Non-fatal — URL is printed above
 
         # Step 3 — poll device-token (public endpoint, no auth) until approved.
         # The access_token is returned here once the user approves in the browser.
@@ -249,15 +253,18 @@ class JwtAuthMixin:
             or issue_data.get("verification_uri", "")
         )
 
-        # Step 2 — prompt user to log in and approve via the Jana web app
-        # Do not auto-open: user may need to open in private/incognito window for a
-        # fresh login (avoids cached session that skips the login form).
+        # Step 2 — open browser and prompt user to log in and approve
         print(
-            f"\nOpen the following URL in your browser to log in and authorize this device:\n"
+            f"\nOpening browser to log in and authorize this device...\n"
             f"  {verify_url}\n"
-            f"\nTip: Open in a private/incognito window if you need to log in fresh.\n"
+            f"\nIf the browser didn't open, copy the URL above into your browser.\n"
+            f"Tip: Use a private/incognito window if you need to log in fresh.\n"
             f"Waiting for you to approve in the browser..."
         )
+        try:
+            webbrowser.open(verify_url)
+        except Exception:
+            pass  # Non-fatal — URL is printed above
 
         # Step 3 — poll device-token (public endpoint, no auth) until approved.
         # The access_token is returned here once the user approves in the browser.
