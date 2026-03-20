@@ -137,6 +137,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         self,
         temporal_resolution: str,
         sources: Optional[List[str]] = None,
+        country_codes: Optional[List[str]] = None,
         location_bbox: Optional[List[float]] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
@@ -150,6 +151,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         Args:
             temporal_resolution: Aggregation level (hourly, daily, monthly)
             sources: Data sources to include
+            country_codes: ISO 3-letter country codes (required by server)
             location_bbox: Geographic bounding box
             date_from: Start date
             date_to: End date
@@ -163,6 +165,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         params = {
             'temporal_resolution': temporal_resolution,
             'sources': sources,
+            'country_codes': country_codes,
             'location_bbox': location_bbox,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
             'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
