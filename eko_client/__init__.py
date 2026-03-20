@@ -8,6 +8,7 @@ from OpenAQ, Climate TRACE, and EDGAR sources through the unified API.
 from .exceptions import (
     EkoClientError,
     EkoAuthenticationError,
+    EkoSessionExpiredError,
     EkoAPIError,
     EkoRateLimitError,
     EkoNotFoundError,
@@ -24,6 +25,7 @@ __all__ = [
     "JwtAuthMixin",
     "EkoClientError",
     "EkoAuthenticationError",
+    "EkoSessionExpiredError",
     "EkoAPIError",
     "EkoRateLimitError",
     "EkoNotFoundError",
