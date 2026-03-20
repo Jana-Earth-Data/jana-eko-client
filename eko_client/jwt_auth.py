@@ -16,7 +16,7 @@ import logging
 import time
 from typing import Optional
 
-from .exceptions import EkoAPIError, EkoAuthenticationError
+from .exceptions import EkoAPIError, EkoAuthenticationError, EkoSessionExpiredError
 
 logger = logging.getLogger(__name__)
 
@@ -392,32 +392,53 @@ class JwtAuthMixin:
         return False
 
     def _request_sync(self, method: str, endpoint: str, **kwargs):
-        """Override: on auth failure (401 or JWT-related 403), refresh and retry once."""
+        """Override: on auth failure (401 or JWT-related 403), refresh and retry once.
+
+        If the refresh token is also expired/invalid, raises
+        ``EkoSessionExpiredError`` so callers can distinguish "re-login
+        needed" from transient auth errors.
+        """
         try:
             return super()._request_sync(method, endpoint, **kwargs)
         except (EkoAuthenticationError, EkoAPIError) as exc:
-            if self._is_auth_failure(exc) and self.refresh_token and not getattr(self, "_refreshing", False):
-                self._refreshing = True
-                try:
-                    self.refresh_jwt()
-                finally:
-                    self._refreshing = False
-                return super()._request_sync(method, endpoint, **kwargs)
-            raise
+            if not self._is_auth_failure(exc) or getattr(self, "_refreshing", False):
+                raise
+            if not self.refresh_token:
+                raise EkoSessionExpiredError() from exc
+            self._refreshing = True
+            try:
+                self.refresh_jwt()
+            except (EkoAuthenticationError, EkoAPIError):
+                self.access_token = None
+                self.refresh_token = None
+                raise EkoSessionExpiredError() from exc
+            finally:
+                self._refreshing = False
+            return super()._request_sync(method, endpoint, **kwargs)
 
     async def _request_async(self, method: str, endpoint: str, **kwargs):
-        """Override: on auth failure (401 or JWT-related 403), refresh and retry once."""
+        """Async override: on auth failure, refresh and retry once.
+
+        If the refresh token is also expired/invalid, raises
+        ``EkoSessionExpiredError``.
+        """
         try:
             return await super()._request_async(method, endpoint, **kwargs)
         except (EkoAuthenticationError, EkoAPIError) as exc:
-            if self._is_auth_failure(exc) and self.refresh_token and not getattr(self, "_refreshing", False):
-                self._refreshing = True
-                try:
-                    await self.refresh_jwt_async()
-                finally:
-                    self._refreshing = False
-                return await super()._request_async(method, endpoint, **kwargs)
-            raise
+            if not self._is_auth_failure(exc) or getattr(self, "_refreshing", False):
+                raise
+            if not self.refresh_token:
+                raise EkoSessionExpiredError() from exc
+            self._refreshing = True
+            try:
+                await self.refresh_jwt_async()
+            except (EkoAuthenticationError, EkoAPIError):
+                self.access_token = None
+                self.refresh_token = None
+                raise EkoSessionExpiredError() from exc
+            finally:
+                self._refreshing = False
+            return await super()._request_async(method, endpoint, **kwargs)
 
     # ------------------------------------------------------------------
     # User info
