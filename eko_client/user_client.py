@@ -654,13 +654,34 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         self,
         location_id: Optional[int] = None,
         parameter: Optional[str] = None,
+        country_code: Optional[str] = None,
+        location_bbox: Optional[List[float]] = None,
+        coordinates: Optional[List[float]] = None,
+        radius_km: Optional[float] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get OpenAQ sensors."""
+        """Get OpenAQ sensors.
+
+        Args:
+            location_id: Filter by location FK ID.
+            parameter: Filter by parameter name.
+            country_code: Filter by country ISO3 code.
+            location_bbox: Bounding box [min_lon, min_lat, max_lon, max_lat].
+            coordinates: Point [lon, lat] (requires radius_km).
+            radius_km: Radius in km around *coordinates*.
+            limit: Max results to return.
+            offset: Pagination offset.
+        """
+        bbox_str = ','.join(str(v) for v in location_bbox) if location_bbox else None
+        coords_str = ','.join(str(v) for v in coordinates) if coordinates else None
         params = {
             'location_id': location_id,
             'parameter__name': parameter,
+            'location__country_code': country_code,
+            'bbox': bbox_str,
+            'coordinates': coords_str,
+            'radius': radius_km,
             'limit': limit,
             'offset': offset,
         }
