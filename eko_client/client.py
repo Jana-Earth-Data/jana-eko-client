@@ -35,7 +35,7 @@ class BaseEkoClient:
         token: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
-        timeout: int = 30,
+        timeout: int = 120,
         verify_ssl: bool = True,
     ):
         """
@@ -51,7 +51,7 @@ class BaseEkoClient:
             token: Authentication token (if available)
             username: Username for login (if token not provided)
             password: Password for login (if token not provided)
-            timeout: Request timeout in seconds
+            timeout: Request timeout in seconds (default 120 for large aggregation queries)
             verify_ssl: Whether to verify SSL certificates
         """
         self.base_url = base_url.rstrip('/')
