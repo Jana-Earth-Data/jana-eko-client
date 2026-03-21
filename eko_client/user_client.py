@@ -616,16 +616,31 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
     # OpenAQ Methods
     async def get_openaq_locations_async(
         self,
-        country_codes: Optional[List[str]] = None,
+        country_codes: Optional[Union[List[str], str]] = None,
         location_bbox: Optional[List[float]] = None,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get OpenAQ locations."""
+        """Get OpenAQ locations.
+
+        Args:
+            country_codes: Country code(s) — single string or list (e.g. 'US' or ['US', 'GB']).
+            location_bbox: Geographic bounding box [min_lon, min_lat, max_lon, max_lat].
+            page: Page number (1-based).
+            page_size: Number of results per page.
+            limit: Alias for page_size (backward compatibility).
+            offset: Result offset (backward compatibility).
+        """
+        # Normalize single string to list for consistent handling
+        if isinstance(country_codes, str):
+            country_codes = [country_codes]
         params = {
             'country_codes': country_codes,
             'location_bbox': location_bbox,
-            'limit': limit,
+            'page': page,
+            'page_size': page_size or limit,
             'offset': offset,
         }
         return await self._request_async('GET', '/api/v1/data-sources/openaq/locations/', params=params)
@@ -645,7 +660,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         """Get OpenAQ sensors."""
         params = {
             'location_id': location_id,
-            'parameter': parameter,
+            'parameter__name': parameter,
             'limit': limit,
             'offset': offset,
         }
@@ -662,16 +677,36 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         parameter: Optional[str] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
+        country_code: Optional[str] = None,
+        ordering: Optional[str] = None,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get OpenAQ measurements."""
+        """Get OpenAQ measurements.
+
+        Args:
+            location_id: Filter by location ID.
+            parameter: Filter by parameter name (e.g. 'pm25', 'o3').
+            date_from: Start date (ISO 8601 string or datetime).
+            date_to: End date (ISO 8601 string or datetime).
+            country_code: Filter by country code (e.g. 'US').
+            ordering: Sort field (e.g. 'measured_at', '-measured_at').
+            page: Page number (1-based, used with page_size).
+            page_size: Number of results per page.
+            limit: Alias for page_size (backward compatibility).
+            offset: Result offset (backward compatibility).
+        """
         params = {
             'location_id': location_id,
-            'parameter': parameter,
+            'parameter_name': parameter,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
             'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
-            'limit': limit,
+            'location__country_code': country_code,
+            'ordering': ordering,
+            'page': page,
+            'page_size': page_size or limit,
             'offset': offset,
         }
         return await self._request_async('GET', '/api/v1/data-sources/openaq/measurements/', params=params)
