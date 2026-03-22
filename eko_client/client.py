@@ -295,6 +295,36 @@ class BaseEkoClient:
     # Pagination helpers
     # =========================================================================
 
+    @staticmethod
+    def _pagination_progress(
+        page: int,
+        total_records: int,
+        total_count: Optional[int],
+        is_cursor: bool,
+        progress: bool,
+        progress_every: int = 5,
+        *,
+        _detected: bool = False,
+    ) -> None:
+        """Print pagination progress when ``progress=True``.
+
+        Called once per page. On the first page it reports the detected
+        pagination type; afterwards it reports every *progress_every* pages.
+        """
+        if not progress:
+            return
+        if _detected:
+            if is_cursor:
+                print(f"   Cursor pagination (no count), fetching all pages...")
+            else:
+                print(f"   {total_count:,} total records")
+        elif page % progress_every == 0:
+            if total_count:
+                pct = total_records / total_count * 100
+                print(f"   ... page {page}: {total_records:,}/{total_count:,} ({pct:.0f}%)")
+            else:
+                print(f"   ... page {page}: {total_records:,} records so far")
+
     async def fetch_all_pages_async(
         self,
         endpoint: str,
@@ -303,30 +333,37 @@ class BaseEkoClient:
         page_size: int = 1000,
         max_pages: int = 1000,
         progress: bool = False,
+        progress_every: int = 5,
     ) -> List[Dict[str, Any]]:
         """
-        Fetch all pages of a paginated endpoint, following cursor ``next`` URLs.
+        Fetch all pages of a paginated endpoint, following ``next`` URLs.
 
-        Works with both CursorPagination (follows ``next`` URL) and
-        LimitOffsetPagination (increments ``offset``). Automatically detects
-        which style the API uses based on the response.
+        Works with CursorPagination, PageNumberPagination, and
+        LimitOffsetPagination. Automatically detects which style the API
+        uses based on the response.
 
         Args:
-            endpoint: API endpoint path (e.g., '/api/v1/data-sources/climatetrace/emissions/')
+            endpoint: API endpoint path (e.g., ``/api/v1/data-sources/edgar/country-totals/``)
             params: Initial query parameters (filters, etc.)
-            page_size: Number of records per page (default 1000, the API max for most endpoints)
+            page_size: Number of records per page (default 1000).
+                Sent as both ``page_size`` and ``limit`` on the first request
+                so both cursor and offset-based endpoints honour it.
             max_pages: Safety limit on number of pages to fetch (default 1000)
-            progress: If True, print progress messages
+            progress: If True, ``print()`` human-readable progress to stdout
+                (suitable for Jupyter notebooks).
+            progress_every: Print progress every N pages (default 5).
 
         Returns:
-            List of all result dictionaries across all pages
+            List of all result dictionaries across all pages.
         """
         all_results: List[Dict[str, Any]] = []
         params = dict(params or {})
-        params['limit'] = page_size
+        # Send both so cursor endpoints (page_size) and offset endpoints (limit) work
+        params.setdefault('page_size', page_size)
+        params.setdefault('limit', page_size)
         page = 0
+        is_cursor: Optional[bool] = None
 
-        # First request uses the endpoint + params
         response = await self._request_async('GET', endpoint, params=params)
 
         while True:
@@ -337,32 +374,45 @@ class BaseEkoClient:
             all_results.extend(results)
 
             total = response.get('count')
-            if progress:
-                if total:
-                    logger.info("Page %d: %d/%d records", page, len(all_results), total)
-                else:
-                    logger.info("Page %d: %d records so far", page, len(all_results))
+
+            # Detect pagination type on first page
+            if is_cursor is None:
+                is_cursor = total is None
+                self._pagination_progress(
+                    page, len(all_results), total, is_cursor, progress,
+                    progress_every, _detected=True,
+                )
+            else:
+                self._pagination_progress(
+                    page, len(all_results), total, is_cursor, progress,
+                    progress_every,
+                )
 
             # Stop conditions
             if total and len(all_results) >= total:
                 break
             if page >= max_pages:
+                if progress:
+                    print(f"   Warning: reached max page limit ({max_pages})")
                 logger.warning("Reached max_pages=%d, stopping", max_pages)
                 break
 
-            # Follow cursor next URL if present (CursorPagination)
             next_url = response.get('next')
             if next_url:
-                # Extract the path + query from the full URL and make a raw request
                 parsed = urlparse(next_url)
                 next_endpoint = parsed.path
-                # Parse query string into flat dict
-                next_params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
-                response = await self._request_async('GET', next_endpoint, params=next_params)
+                next_params = {
+                    k: v[0] if len(v) == 1 else v
+                    for k, v in parse_qs(parsed.query).items()
+                }
+                response = await self._request_async(
+                    'GET', next_endpoint, params=next_params,
+                )
             else:
-                # No next URL and count not reached -- we're done
                 break
 
+        if progress:
+            print(f"   Done: {len(all_results):,} records in {page} page(s)")
         return all_results
 
     def fetch_all_pages(
@@ -373,26 +423,34 @@ class BaseEkoClient:
         page_size: int = 1000,
         max_pages: int = 1000,
         progress: bool = False,
+        progress_every: int = 5,
     ) -> List[Dict[str, Any]]:
         """
         Synchronous version of :meth:`fetch_all_pages_async`.
 
-        Fetch all pages of a paginated endpoint, following cursor ``next`` URLs.
+        Fetch all pages of a paginated endpoint, following ``next`` URLs.
+
+        Works with CursorPagination, PageNumberPagination, and
+        LimitOffsetPagination transparently.
 
         Args:
             endpoint: API endpoint path
             params: Initial query parameters (filters, etc.)
-            page_size: Records per page (default 1000)
+            page_size: Records per page (default 1000).
+                Sent as both ``page_size`` and ``limit`` on the first request.
             max_pages: Safety limit on pages (default 1000)
-            progress: Print progress messages
+            progress: ``print()`` human-readable progress to stdout
+            progress_every: Print progress every N pages (default 5)
 
         Returns:
-            List of all result dictionaries across all pages
+            List of all result dictionaries across all pages.
         """
         all_results: List[Dict[str, Any]] = []
         params = dict(params or {})
-        params['limit'] = page_size
+        params.setdefault('page_size', page_size)
+        params.setdefault('limit', page_size)
         page = 0
+        is_cursor: Optional[bool] = None
 
         response = self._request_sync('GET', endpoint, params=params)
 
@@ -404,15 +462,24 @@ class BaseEkoClient:
             all_results.extend(results)
 
             total = response.get('count')
-            if progress:
-                if total:
-                    logger.info("Page %d: %d/%d records", page, len(all_results), total)
-                else:
-                    logger.info("Page %d: %d records so far", page, len(all_results))
+
+            if is_cursor is None:
+                is_cursor = total is None
+                self._pagination_progress(
+                    page, len(all_results), total, is_cursor, progress,
+                    progress_every, _detected=True,
+                )
+            else:
+                self._pagination_progress(
+                    page, len(all_results), total, is_cursor, progress,
+                    progress_every,
+                )
 
             if total and len(all_results) >= total:
                 break
             if page >= max_pages:
+                if progress:
+                    print(f"   Warning: reached max page limit ({max_pages})")
                 logger.warning("Reached max_pages=%d, stopping", max_pages)
                 break
 
@@ -420,11 +487,18 @@ class BaseEkoClient:
             if next_url:
                 parsed = urlparse(next_url)
                 next_endpoint = parsed.path
-                next_params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
-                response = self._request_sync('GET', next_endpoint, params=next_params)
+                next_params = {
+                    k: v[0] if len(v) == 1 else v
+                    for k, v in parse_qs(parsed.query).items()
+                }
+                response = self._request_sync(
+                    'GET', next_endpoint, params=next_params,
+                )
             else:
                 break
 
+        if progress:
+            print(f"   Done: {len(all_results):,} records in {page} page(s)")
         return all_results
 
     def login(self, username: str, password: str) -> str:
