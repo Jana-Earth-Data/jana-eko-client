@@ -654,13 +654,34 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         self,
         location_id: Optional[int] = None,
         parameter: Optional[str] = None,
+        country_code: Optional[str] = None,
+        location_bbox: Optional[List[float]] = None,
+        coordinates: Optional[List[float]] = None,
+        radius_km: Optional[float] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get OpenAQ sensors."""
+        """Get OpenAQ sensors.
+
+        Args:
+            location_id: Filter by location FK ID.
+            parameter: Filter by parameter name.
+            country_code: Filter by country ISO3 code.
+            location_bbox: Bounding box [min_lon, min_lat, max_lon, max_lat].
+            coordinates: Point [lon, lat] (requires radius_km).
+            radius_km: Radius in km around *coordinates*.
+            limit: Max results to return.
+            offset: Pagination offset.
+        """
+        bbox_str = ','.join(str(v) for v in location_bbox) if location_bbox else None
+        coords_str = ','.join(str(v) for v in coordinates) if coordinates else None
         params = {
             'location_id': location_id,
             'parameter__name': parameter,
+            'location__country_code': country_code,
+            'bbox': bbox_str,
+            'coordinates': coords_str,
+            'radius': radius_km,
             'limit': limit,
             'offset': offset,
         }
@@ -1023,15 +1044,33 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         gas: Optional[str] = None,
         sector: Optional[str] = None,
         min_value: Optional[float] = None,
+        bbox: Optional[str] = None,
+        coordinates: Optional[str] = None,
+        radius: Optional[float] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get EDGAR grid emissions."""
+        """Get EDGAR grid emissions.
+
+        Args:
+            year: Filter by year (e.g. 2022). At least one filter required.
+            gas: Filter by gas type (e.g. 'CO2', 'CH4').
+            sector: Filter by EDGAR sector code.
+            min_value: Minimum emission value threshold.
+            bbox: Bounding box as 'min_lon,min_lat,max_lon,max_lat'.
+            coordinates: Point as 'lon,lat' (requires radius).
+            radius: Radius in km around coordinates point.
+            limit: Results per page.
+            offset: Pagination offset.
+        """
         params = {
             'year': year,
             'gas': gas,
             'sector': sector,
             'min_value': min_value,
+            'bbox': bbox,
+            'coordinates': coordinates,
+            'radius': radius,
             'limit': limit,
             'offset': offset,
         }
