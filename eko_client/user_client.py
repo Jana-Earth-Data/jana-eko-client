@@ -1044,15 +1044,33 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         gas: Optional[str] = None,
         sector: Optional[str] = None,
         min_value: Optional[float] = None,
+        bbox: Optional[str] = None,
+        coordinates: Optional[str] = None,
+        radius: Optional[float] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get EDGAR grid emissions."""
+        """Get EDGAR grid emissions.
+
+        Args:
+            year: Filter by year (e.g. 2022). At least one filter required.
+            gas: Filter by gas type (e.g. 'CO2', 'CH4').
+            sector: Filter by EDGAR sector code.
+            min_value: Minimum emission value threshold.
+            bbox: Bounding box as 'min_lon,min_lat,max_lon,max_lat'.
+            coordinates: Point as 'lon,lat' (requires radius).
+            radius: Radius in km around coordinates point.
+            limit: Results per page.
+            offset: Pagination offset.
+        """
         params = {
             'year': year,
             'gas': gas,
             'sector': sector,
             'min_value': min_value,
+            'bbox': bbox,
+            'coordinates': coordinates,
+            'radius': radius,
             'limit': limit,
             'offset': offset,
         }
