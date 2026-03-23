@@ -367,6 +367,68 @@ with EkoUserClient(base_url="...", token="...") as client:
 # Client is automatically closed
 ```
 
+## Development
+
+### Setup
+
+```bash
+git clone https://github.com/Jana-Earth-Data/jana-eko-client
+cd jana-eko-client
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage report
+pytest --cov=eko_client --cov-report=term-missing
+
+# Run a specific test file
+pytest tests/test_jwt_auth.py
+
+# Run a specific test class or method
+pytest tests/test_pagination.py::TestFetchAllPagesSync::test_multi_page_with_count
+```
+
+### Test Suite
+
+The test suite uses [respx](https://github.com/lundberg/respx) for HTTP mocking (no live API required) and [pytest-asyncio](https://github.com/pytest-dev/pytest-asyncio) for async test support.
+
+**300 tests, 99.8% coverage** across all modules:
+
+| Module | Coverage |
+|--------|----------|
+| `client.py` (BaseEkoClient) | 99% |
+| `user_client.py` (EkoUserClient) | 100% |
+| `admin_client.py` (EkoAdminClient) | 100% |
+| `jwt_auth.py` (JwtAuthMixin) | 100% |
+| `auth.py` (AuthMixin) | 100% |
+| `sync_wrapper.py` | 100% |
+| `exceptions.py` | 100% |
+| `models.py` | 100% |
+| `utils.py` | 100% |
+
+### Code Style
+
+```bash
+# Format with black
+black eko_client/ tests/
+
+# Lint with ruff
+ruff check eko_client/ tests/
+
+# Type check with mypy
+mypy eko_client/
+```
+
 ## Requirements
 
 - Python 3.8+
