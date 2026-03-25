@@ -1117,3 +1117,146 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
             'offset': offset,
         }
         return await self._request_async('GET', '/api/v1/data-sources/edgar/fasttrack/', params=params)
+
+    # ── GLEIF Methods ──────────────────────────────────────────────────
+
+    async def get_gleif_entities_async(
+        self,
+        search: Optional[str] = None,
+        entity_status: Optional[str] = None,
+        registration_status: Optional[str] = None,
+        entity_category: Optional[str] = None,
+        legal_address_country: Optional[str] = None,
+        headquarters_country: Optional[str] = None,
+        jurisdiction: Optional[str] = None,
+        ordering: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GLEIF legal entities.
+
+        Args:
+            search: Search by legal_name, LEI, BIC, or registered_as.
+            entity_status: Filter by entity status (ACTIVE, INACTIVE).
+            registration_status: Filter by registration status (ISSUED, LAPSED, RETIRED, etc.).
+            entity_category: Filter by category (GENERAL, FUND, BRANCH, etc.).
+            legal_address_country: Filter by legal address country (ISO 3166-1 alpha-2).
+            headquarters_country: Filter by headquarters country (ISO 3166-1 alpha-2).
+            jurisdiction: Filter by jurisdiction (ISO 3166-1/2).
+            ordering: Sort field (legal_name, last_update_date, entity_creation_date).
+            limit: Results per page.
+            offset: Pagination offset.
+        """
+        params = {
+            'search': search,
+            'entity_status': entity_status,
+            'registration_status': registration_status,
+            'entity_category': entity_category,
+            'legal_address_country': legal_address_country,
+            'headquarters_country': headquarters_country,
+            'jurisdiction': jurisdiction,
+            'ordering': ordering,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gleif/entities/', params=params)
+
+    async def get_gleif_entity_async(
+        self,
+        lei: str,
+    ) -> Dict[str, Any]:
+        """Get a single GLEIF legal entity by LEI.
+
+        Args:
+            lei: The 20-character Legal Entity Identifier.
+        """
+        return await self._request_async('GET', f'/api/v1/data-sources/gleif/entities/{lei}/')
+
+    async def get_gleif_entity_parents_async(
+        self,
+        lei: str,
+    ) -> Dict[str, Any]:
+        """Get direct and ultimate parent entities for a given LEI.
+
+        Args:
+            lei: The 20-character Legal Entity Identifier.
+
+        Returns:
+            Dict with 'direct_parent' and 'ultimate_parent' keys (each null or entity object).
+        """
+        return await self._request_async('GET', f'/api/v1/data-sources/gleif/entities/{lei}/parents/')
+
+    async def get_gleif_entity_children_async(
+        self,
+        lei: str,
+    ) -> List:
+        """Get direct child entities (subsidiaries) for a given LEI.
+
+        Args:
+            lei: The 20-character Legal Entity Identifier.
+
+        Returns:
+            List of child entity objects.
+        """
+        return await self._request_async('GET', f'/api/v1/data-sources/gleif/entities/{lei}/children/')
+
+    async def get_gleif_relationships_async(
+        self,
+        start_lei: Optional[str] = None,
+        end_lei: Optional[str] = None,
+        relationship_type: Optional[str] = None,
+        relationship_status: Optional[str] = None,
+        ordering: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GLEIF entity relationships.
+
+        Args:
+            start_lei: Filter by child entity LEI.
+            end_lei: Filter by parent entity LEI.
+            relationship_type: Filter by type (IS_DIRECTLY_CONSOLIDATED_BY,
+                IS_ULTIMATELY_CONSOLIDATED_BY, IS_FEEDER_TO, IS_FUND-MANAGED_BY).
+            relationship_status: Filter by status (ACTIVE, INACTIVE).
+            ordering: Sort field (start_lei, end_lei, ingested_at).
+            limit: Results per page.
+            offset: Pagination offset.
+        """
+        params = {
+            'start_lei': start_lei,
+            'end_lei': end_lei,
+            'relationship_type': relationship_type,
+            'relationship_status': relationship_status,
+            'ordering': ordering,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gleif/relationships/', params=params)
+
+    async def get_gleif_exceptions_async(
+        self,
+        lei: Optional[str] = None,
+        exception_category: Optional[str] = None,
+        exception_reason: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GLEIF reporting exceptions.
+
+        Args:
+            lei: Filter by entity LEI.
+            exception_category: Filter by category (DIRECT_ACCOUNTING_CONSOLIDATION_PARENT,
+                ULTIMATE_ACCOUNTING_CONSOLIDATION_PARENT).
+            exception_reason: Filter by reason (NON_CONSOLIDATING, NO_KNOWN_PERSON,
+                NO_LEI, NATURAL_PERSONS, etc.).
+            limit: Results per page.
+            offset: Pagination offset.
+        """
+        params = {
+            'lei': lei,
+            'exception_category': exception_category,
+            'exception_reason': exception_reason,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gleif/exceptions/', params=params)
