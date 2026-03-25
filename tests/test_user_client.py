@@ -736,3 +736,89 @@ class TestEDGAR:
         result = client.get_edgar_country_totals(country_code="NPL")
         assert result == OK
         client.close()
+
+
+class TestGLEIF:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_entities(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/entities/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_entities_async(
+            search="Apple Inc", legal_address_country="US", entity_status="ACTIVE",
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_entity_detail(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/entities/HWUPKR0MPOU8FGXBT394/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_entity_async("HWUPKR0MPOU8FGXBT394")
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_entity_parents(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/entities/HWUPKR0MPOU8FGXBT394/parents/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_entity_parents_async("HWUPKR0MPOU8FGXBT394")
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_entity_children(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/entities/HWUPKR0MPOU8FGXBT394/children/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_entity_children_async("HWUPKR0MPOU8FGXBT394")
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_relationships(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/relationships/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_relationships_async(
+            start_lei="HWUPKR0MPOU8FGXBT394", relationship_type="IS_DIRECTLY_CONSOLIDATED_BY",
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_exceptions(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/exceptions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_exceptions_async(
+            lei="HWUPKR0MPOU8FGXBT394", exception_category="DIRECT_ACCOUNTING_CONSOLIDATION_PARENT",
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    def test_get_entities_sync(self):
+        """Verify sync wrapper works for GLEIF."""
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/entities/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = client.get_gleif_entities(search="Apple")
+        assert result == OK
+        client.close()
