@@ -648,12 +648,46 @@ class TestClimateTRACE:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_company_matches(self):
+    async def test_get_company_matches_minimal(self):
         respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/company-matches/").mock(
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
         result = await client.get_climatetrace_company_matches_async(limit=5)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_company_matches_by_lei(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/company-matches/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_company_matches_async(
+            legal_entity_lei="HWUPKR0MPOU8FGXBT394",
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_company_matches_all_filters(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/company-matches/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_company_matches_async(
+            legal_entity_lei="HWUPKR0MPOU8FGXBT394",
+            company_id="COMP-001",
+            matching_method="exact_name",
+            relationship_type="owner",
+            verified=True,
+            search="Alphabet",
+            ordering="-matching_confidence",
+            limit=10,
+            offset=0,
+        )
         assert result == OK
         await client.close_async()
 

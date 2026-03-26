@@ -989,13 +989,49 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
 
     async def get_climatetrace_company_matches_async(
         self,
-        asset_id: Optional[int] = None,
+        legal_entity_lei: Optional[str] = None,
+        company_id: Optional[str] = None,
+        matching_method: Optional[str] = None,
+        relationship_type: Optional[str] = None,
+        verified: Optional[bool] = None,
+        search: Optional[str] = None,
+        ordering: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get Climate TRACE company matches."""
+        """Get Climate TRACE company-asset matches.
+
+        Links between Climate TRACE emission-producing assets and GLEIF
+        legal entities (companies/organizations).
+
+        Args:
+            legal_entity_lei: Filter by GLEIF Legal Entity Identifier (20-char LEI).
+            company_id: Filter by internal company identifier.
+            matching_method: Filter by how the match was established
+                (e.g. 'exact_name', 'fuzzy_name').
+            relationship_type: Filter by relationship type
+                (e.g. 'owner', 'operator', 'parent').
+            verified: Filter by verification status (True/False).
+            search: Full-text search across asset name, owner name, and
+                legal entity name.
+            ordering: Sort field. Options: 'matching_confidence',
+                '-matching_confidence', 'created_at', '-created_at'.
+            limit: Results per page.
+            offset: Pagination offset.
+
+        Returns:
+            Paginated response with 'count', 'next', 'previous', and
+            'results' keys.  Each result includes asset details and,
+            when linked, ``legal_entity_lei`` and ``legal_entity_name``.
+        """
         params = {
-            'asset_id': asset_id,
+            'legal_entity_lei': legal_entity_lei,
+            'company_id': company_id,
+            'matching_method': matching_method,
+            'relationship_type': relationship_type,
+            'verified': verified,
+            'search': search,
+            'ordering': ordering,
             'limit': limit,
             'offset': offset,
         }
