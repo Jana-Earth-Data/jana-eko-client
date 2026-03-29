@@ -1296,3 +1296,176 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
             'offset': offset,
         }
         return await self._request_async('GET', '/api/v1/data-sources/gleif/exceptions/', params=params)
+
+    # ── GCP (Global Carbon Project) Methods ───────────────────────────
+
+    async def get_gcp_national_emissions_async(
+        self,
+        country_code: Optional[str] = None,
+        year: Optional[int] = None,
+        budget_version: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GCP national CO2 emissions.
+
+        Returns territorial and consumption-based CO2 emissions by country
+        and year, including per-capita values.
+
+        Args:
+            country_code: ISO-3 country code (e.g. 'USA', 'CHN', 'IND').
+            year: Emission year (e.g. 2020).
+            budget_version: GCP budget version (e.g. '2024').
+            limit: Results per page.
+            offset: Pagination offset.
+
+        Returns:
+            Paginated response with national emissions records.
+        """
+        params = {
+            'country_code': country_code,
+            'year': year,
+            'budget_version': budget_version,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gcp/national-emissions/', params=params)
+
+    async def get_gcp_emissions_by_fuel_async(
+        self,
+        year: Optional[int] = None,
+        budget_version: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GCP global fossil CO2 emissions by fuel type.
+
+        Returns emissions from coal, oil, gas, cement, flaring, and other
+        sources by year.
+
+        Args:
+            year: Emission year (e.g. 2020).
+            budget_version: GCP budget version (e.g. '2024').
+            limit: Results per page.
+            offset: Pagination offset.
+
+        Returns:
+            Paginated response with fuel-type emission records.
+        """
+        params = {
+            'year': year,
+            'budget_version': budget_version,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gcp/emissions-by-fuel/', params=params)
+
+    async def get_gcp_carbon_budget_async(
+        self,
+        year: Optional[int] = None,
+        budget_version: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GCP global carbon budget.
+
+        Returns global carbon budget components (fossil emissions, land-use
+        change, atmospheric growth, ocean sink, land sink) by year.
+
+        Args:
+            year: Budget year (e.g. 2020).
+            budget_version: GCP budget version (e.g. '2024').
+            limit: Results per page.
+            offset: Pagination offset.
+
+        Returns:
+            Paginated response with carbon budget records.
+        """
+        params = {
+            'year': year,
+            'budget_version': budget_version,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gcp/carbon-budget/', params=params)
+
+    async def get_gcp_methane_budget_async(
+        self,
+        year: Optional[int] = None,
+        budget_version: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get GCP global methane budget.
+
+        Returns methane budget components (anthropogenic and natural sources
+        and sinks) by year.
+
+        Args:
+            year: Budget year (e.g. 2020).
+            budget_version: GCP budget version (e.g. '2024').
+            limit: Results per page.
+            offset: Pagination offset.
+
+        Returns:
+            Paginated response with methane budget records.
+        """
+        params = {
+            'year': year,
+            'budget_version': budget_version,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/gcp/methane-budget/', params=params)
+
+    # ── NOAA Storm Events Methods ─────────────────────────────────────
+
+    async def get_noaa_storm_events_async(
+        self,
+        event_type: Optional[str] = None,
+        state: Optional[str] = None,
+        year: Optional[int] = None,
+        month: Optional[int] = None,
+        bbox: Optional[str] = None,
+        lat: Optional[float] = None,
+        lon: Optional[float] = None,
+        radius_km: Optional[float] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get NOAA severe weather events.
+
+        Returns storm event records across the United States including
+        tornadoes, hurricanes, floods, hail, thunderstorms, winter storms,
+        and more.
+
+        Args:
+            event_type: Storm event type (e.g. 'Tornado', 'Hurricane',
+                'Flood', 'Hail', 'Thunderstorm Wind', 'Winter Storm').
+            state: US state name in uppercase (e.g. 'TEXAS', 'FLORIDA').
+            year: Event year (2015-2024 available).
+            month: Event month (1-12).
+            bbox: Bounding box as 'min_lat,min_lon,max_lat,max_lon'.
+            lat: Latitude for point+radius search (-90 to 90).
+            lon: Longitude for point+radius search (-180 to 180).
+            radius_km: Search radius in km (requires lat and lon).
+            limit: Results per page.
+            offset: Pagination offset.
+
+        Returns:
+            Paginated response with storm event records including
+            event type, location, dates, damage, injuries, and deaths.
+        """
+        params = {
+            'event_type': event_type,
+            'state': state,
+            'year': year,
+            'month': month,
+            'bbox': bbox,
+            'lat': lat,
+            'lon': lon,
+            'radius_km': radius_km,
+            'limit': limit,
+            'offset': offset,
+        }
+        return await self._request_async('GET', '/api/v1/data-sources/noaa_storm_events/events/', params=params)

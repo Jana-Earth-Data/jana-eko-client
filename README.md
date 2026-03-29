@@ -1,6 +1,6 @@
 # Jana Eko Client - Python Client Library for Jana Earth Unified Environmental Data API
 
-A Python client library for accessing the Jana Earth Unified Environmental Data API. This library provides easy access to environmental data from OpenAQ, Climate TRACE, and EDGAR sources through a clean, Pythonic interface.
+A Python client library for accessing the Jana Earth Unified Environmental Data API. This library provides easy access to environmental data from OpenAQ, Climate TRACE, EDGAR, GLEIF, GCP (Global Carbon Project), and NOAA Storm Events sources through a clean, Pythonic interface.
 
 ## Features
 
@@ -184,6 +184,23 @@ End-user client for accessing unified data APIs. Does not include job management
 - `get_edgar_grid_emissions()` - Get EDGAR grid emissions
 - `get_edgar_temporal_profiles()` - Get EDGAR temporal profiles
 - `get_edgar_fasttrack()` - Get EDGAR fasttrack data
+
+**GLEIF:**
+- `get_gleif_entities()` - Search/filter legal entities by name, country, status
+- `get_gleif_entity(lei)` - Get entity details by LEI
+- `get_gleif_entity_parents(lei)` - Get direct and ultimate parent entities
+- `get_gleif_entity_children(lei)` - Get subsidiary entities
+- `get_gleif_relationships()` - Query ownership/consolidation relationships
+- `get_gleif_exceptions()` - Get reporting exceptions
+
+**GCP (Global Carbon Project):**
+- `get_gcp_national_emissions()` - Get national CO2 emissions by country/year
+- `get_gcp_emissions_by_fuel()` - Get global fossil CO2 by fuel type (coal, oil, gas, cement)
+- `get_gcp_carbon_budget()` - Get global carbon budget components
+- `get_gcp_methane_budget()` - Get global methane budget components
+
+**NOAA (Storm Events):**
+- `get_noaa_storm_events()` - Get severe weather events (tornadoes, hurricanes, floods, etc.)
 
 ### EkoAdminClient
 
