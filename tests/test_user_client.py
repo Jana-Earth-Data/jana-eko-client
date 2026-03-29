@@ -856,3 +856,197 @@ class TestGLEIF:
         result = client.get_gleif_entities(search="Apple")
         assert result == OK
         client.close()
+
+
+# ── GCP (Global Carbon Project) ──────────────────────────────────────────────
+
+class TestGCPNationalEmissions:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_basic(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/national-emissions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_national_emissions_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_filters(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/national-emissions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_national_emissions_async(
+            country_code="USA", year=2020, budget_version="2024", limit=100,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+
+class TestGCPEmissionsByFuel:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_basic(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/emissions-by-fuel/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_emissions_by_fuel_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_filters(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/emissions-by-fuel/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_emissions_by_fuel_async(
+            year=2020, budget_version="2024", limit=50,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+
+class TestGCPCarbonBudget:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_basic(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/carbon-budget/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_carbon_budget_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_filters(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/carbon-budget/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_carbon_budget_async(
+            year=2020, budget_version="2024", limit=10,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+
+class TestGCPMethaneBudget:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_basic(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/methane-budget/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_methane_budget_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_filters(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/methane-budget/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gcp_methane_budget_async(
+            year=2020, budget_version="2024", limit=10,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    def test_gcp_sync_wrapper(self):
+        """Verify sync wrapper works for GCP."""
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gcp/national-emissions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = client.get_gcp_national_emissions(country_code="USA")
+        assert result == OK
+        client.close()
+
+
+# ── NOAA Storm Events ─────────────────────────────────────────────────────────
+
+class TestNOAAStormEvents:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_basic(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/noaa_storm_events/events/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_noaa_storm_events_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_standard_filters(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/noaa_storm_events/events/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_noaa_storm_events_async(
+            event_type="Tornado", state="TEXAS", year=2023, month=1, limit=100,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_spatial_bbox(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/noaa_storm_events/events/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_noaa_storm_events_async(
+            bbox="25.0,-100.0,36.5,-93.5", year=2023, limit=50,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_spatial_point_radius(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/noaa_storm_events/events/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_noaa_storm_events_async(
+            lat=29.76, lon=-95.37, radius_km=50.0, event_type="Tornado", year=2023,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    def test_noaa_sync_wrapper(self):
+        """Verify sync wrapper works for NOAA."""
+        respx.get(f"{BASE_URL}/api/v1/data-sources/noaa_storm_events/events/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = client.get_noaa_storm_events(state="TEXAS", year=2023)
+        assert result == OK
+        client.close()
