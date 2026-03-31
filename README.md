@@ -2,6 +2,14 @@
 
 A Python client library for accessing the Jana Earth Unified Environmental Data API. This library provides easy access to environmental data from OpenAQ, Climate TRACE, EDGAR, GLEIF, GCP (Global Carbon Project), and NOAA Storm Events sources through a clean, Pythonic interface.
 
+## Documentation
+
+All engineering documentation for this project has been consolidated in the central documentation repository:
+
+**[engineering-documents/jana-eko-client/](../engineering-documents/jana-eko-client/)**
+
+This includes architecture docs, ADRs, design specs, operational guides, and development docs. Archived/outdated documents are in `engineering-documents/archived_do_not_read/`.
+
 ## Features
 
 - **Unified API Access**: Single interface for accessing data from multiple environmental data sources
