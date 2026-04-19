@@ -16,9 +16,6 @@ This includes architecture docs, ADRs, design specs, operational guides, and dev
 - **Async & Sync Support**: Both synchronous and asynchronous methods for all API calls
 - **Type-Safe**: Full type hints and Pydantic models for response validation
 - **Thread-Safe**: Safe to use in multi-threaded and async environments
-- **Two Client Types**:
-  - `EkoUserClient`: End-user client (data access only, no job management)
-  - `EkoAdminClient`: Admin client (full access including job management)
 - **Production-Ready**: Comprehensive error handling, retry logic, and logging
 
 ## Installation
@@ -132,7 +129,7 @@ df.head()
 
 ### EkoUserClient
 
-End-user client for accessing unified data APIs. Does not include job management endpoints.
+Client for accessing all unified environmental data APIs.
 
 #### Core Data Access
 
@@ -147,11 +144,14 @@ End-user client for accessing unified data APIs. Does not include job management
 #### Quality & Monitoring
 
 - `get_quality()` - Unified data quality insights
-- `get_alerts()` - Quality-based intelligent alerts
+- `get_analytics()` - Cross-source analytics
+- `get_openaq_statistics()` - OpenAQ source statistics
+- `get_climatetrace_statistics()` - Climate TRACE source statistics
+- `get_table_statistics()` - Per-table record counts and metadata
+- `export_data_sync()` - Synchronous data export
 
 #### Geographic & Spatial
 
-- `get_geojson()` - Mapping-ready unified data in GeoJSON format
 - `get_locations()` - Unified location data
 
 #### Export & Bulk Access
@@ -177,21 +177,54 @@ End-user client for accessing unified data APIs. Does not include job management
 
 **OpenAQ:**
 - `get_openaq_locations()` - Get OpenAQ locations
+- `get_openaq_location(id)` - Get single location
+- `get_openaq_location_sensors(id)` - Sensors at a location
+- `get_openaq_location_flags(id)` - Quality flags for a location
+- `get_openaq_location_latest_measurements(id)` - Latest per-sensor readings
 - `get_openaq_sensors()` - Get OpenAQ sensors
+- `get_openaq_sensor_measurements(id)` - Raw measurements for a sensor
+- `get_openaq_sensor_flags(id)` - Quality flags for a sensor
+- `get_openaq_sensor_hourly(id)` - Hourly aggregates
+- `get_openaq_sensor_daily(id)` - Daily aggregates
+- `get_openaq_sensor_yearly(id)` - Yearly aggregates
+- `get_openaq_sensor_hour_of_day(id)` - Diurnal pattern
+- `get_openaq_sensor_day_of_week(id)` - Day-of-week pattern
+- `get_openaq_sensor_month_of_year(id)` - Seasonal pattern
 - `get_openaq_measurements()` - Get OpenAQ measurements
 - `get_openaq_parameters()` - Get OpenAQ parameters
+- `get_openaq_providers()` - Data providers
+- `get_openaq_owners()` - Station owners
+- `get_openaq_manufacturers()` - Instrument manufacturers
+- `get_openaq_instruments()` - Instrument types
+- `get_openaq_licenses()` - Data licenses
+- `get_openaq_stats()` - Platform statistics
 
 **Climate TRACE:**
 - `get_climatetrace_sectors()` - Get Climate TRACE sectors
 - `get_climatetrace_countries()` - Get Climate TRACE countries
 - `get_climatetrace_assets()` - Get Climate TRACE assets
 - `get_climatetrace_emissions()` - Get Climate TRACE emissions
+- `get_climatetrace_sector_assets(id)` - Assets within a sector
+- `get_climatetrace_sector_emissions_summary(id)` - Sector emission summary
+- `get_climatetrace_country_assets(country_code)` - Assets within a country
+- `get_climatetrace_asset_emissions(id)` - Emissions for an asset
+- `get_climatetrace_asset_violations(id)` - Violations for an asset
+- `get_climatetrace_aggregated_emissions()` - Aggregated emission records
+- `get_climatetrace_annual_country_emissions()` - Annual country emissions
+- `get_climatetrace_definition_subsectors()` - Subsector definitions
+- `get_climatetrace_definition_groups()` - Group definitions
+- `get_climatetrace_definition_continents()` - Continent definitions
+- `get_climatetrace_definition_gases()` - Gas definitions
+- `get_climatetrace_admin_areas_search()` - Search admin areas
+- `get_climatetrace_admin_area_geojson(id)` - Admin area GeoJSON
 
 **EDGAR:**
 - `get_edgar_country_totals()` - Get EDGAR country totals
 - `get_edgar_grid_emissions()` - Get EDGAR grid emissions
 - `get_edgar_temporal_profiles()` - Get EDGAR temporal profiles
 - `get_edgar_fasttrack()` - Get EDGAR fasttrack data
+- `get_edgar_air_pollutant_totals()` - National air pollutant totals
+- `get_edgar_air_pollutant_grid()` - Gridded air pollutant emissions
 
 **GLEIF:**
 - `get_gleif_entities()` - Search/filter legal entities by name, country, status
@@ -200,6 +233,7 @@ End-user client for accessing unified data APIs. Does not include job management
 - `get_gleif_entity_children(lei)` - Get subsidiary entities
 - `get_gleif_relationships()` - Query ownership/consolidation relationships
 - `get_gleif_exceptions()` - Get reporting exceptions
+- `get_gleif_entity_asset_matches(lei)` - Climate TRACE asset matches for an entity
 
 **GCP (Global Carbon Project):**
 - `get_gcp_national_emissions()` - Get national CO2 emissions by country/year
@@ -209,47 +243,6 @@ End-user client for accessing unified data APIs. Does not include job management
 
 **NOAA (Storm Events):**
 - `get_noaa_storm_events()` - Get severe weather events (tornadoes, hurricanes, floods, etc.)
-
-### EkoAdminClient
-
-Admin client that extends `EkoUserClient` with job management capabilities.
-
-#### Job Management
-
-- `list_jobs()` - List all jobs
-- `get_job(job_id)` - Get specific job
-- `create_job(job_data)` - Create a new job
-- `update_job(job_id, job_data)` - Update a job
-- `delete_job(job_id)` - Delete a job
-- `trigger_job(job_id)` - Trigger job execution
-- `pause_job(job_id)` - Pause a job
-- `resume_job(job_id)` - Resume a paused job
-- `get_job_executions(job_id)` - Get executions for a job
-- `get_job_stats(job_id)` - Get job statistics
-
-#### Execution Management
-
-- `list_executions()` - List all executions
-- `get_execution(execution_id)` - Get specific execution
-- `get_execution_logs(execution_id)` - Get execution logs
-- `cancel_execution(execution_id)` - Cancel a running execution
-- `retry_execution(execution_id)` - Retry a failed execution
-
-#### Data Source Management
-
-- `list_data_sources()` - List all data sources
-- `get_data_source(source_id)` - Get specific data source
-- `create_data_source(source_data)` - Create a new data source
-- `update_data_source(source_id, source_data)` - Update a data source
-- `delete_data_source(source_id)` - Delete a data source
-- `check_data_source_health(source_id)` - Check data source health
-
-#### System Management
-
-- `get_management_health()` - Management API health check
-- `get_management_summary()` - Management dashboard summary
-- `get_database_performance()` - Database performance metrics
-- `get_redis_performance()` - Redis performance metrics
 
 ## Error Handling
 
@@ -344,25 +337,6 @@ with open('export.csv.gz', 'wb') as f:
     f.write(data)
 ```
 
-### Admin: Manage Jobs
-
-```python
-from eko_client import EkoAdminClient
-
-admin = EkoAdminClient(base_url="http://localhost:8000", token="...")
-
-# List all jobs
-jobs = admin.list_jobs(status="active")
-
-# Trigger a job
-execution = admin.trigger_job(job_id=1)
-
-# Monitor execution
-execution_id = execution['id']
-logs = admin.get_execution_logs(execution_id)
-print(logs)
-```
-
 ## Configuration
 
 ### Client Initialization Options
@@ -433,7 +407,6 @@ The test suite uses [respx](https://github.com/lundberg/respx) for HTTP mocking 
 |--------|----------|
 | `client.py` (BaseEkoClient) | 99% |
 | `user_client.py` (EkoUserClient) | 100% |
-| `admin_client.py` (EkoAdminClient) | 100% |
 | `jwt_auth.py` (JwtAuthMixin) | 100% |
 | `auth.py` (AuthMixin) | 100% |
 | `sync_wrapper.py` | 100% |
@@ -500,7 +473,6 @@ Created `sync_wrapper.py` with an `@auto_sync_wrapper` decorator that automatica
 
 **Files Changed:**
 - Created `eko_client/sync_wrapper.py` (121 lines)
-- Refactored `eko_client/admin_client.py`: 569 → 419 lines (150 lines removed, 26% reduction)
 - Refactored `eko_client/user_client.py`: 1,475 → 934 lines (541 lines removed, 37% reduction)
 
 **Impact:**
@@ -640,7 +612,7 @@ pip install jana-eko-client
 **Import Statements:** (No Change)
 ```python
 # Imports remain the same
-from eko_client import EkoUserClient, EkoAdminClient
+from eko_client import EkoUserClient
 ```
 
 **API Compatibility:**

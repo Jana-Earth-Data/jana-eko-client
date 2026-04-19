@@ -32,8 +32,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
     """
     End-user client for accessing unified environmental data APIs.
 
-    This client provides access to all unified data endpoints but excludes
-    job management APIs. For job management, use EkoAdminClient.
+    This client provides access to all unified data endpoints.
 
     All methods have both sync and async versions:
     - Async methods end with '_async' suffix (e.g., get_data_async)
