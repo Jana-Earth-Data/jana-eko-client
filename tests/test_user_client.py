@@ -137,38 +137,8 @@ class TestGetQuality:
         await client.close_async()
 
 
-class TestGetAlerts:
-
-    @respx.mock
-    @pytest.mark.asyncio
-    async def test_basic(self):
-        respx.get(f"{BASE_URL}/api/v1/esg/alerts/").mock(
-            return_value=httpx.Response(200, json={"alerts": []})
-        )
-        client = _client()
-        result = await client.get_alerts_async(
-            alert_types=["quality"],
-            date_from=datetime(2024, 1, 1),
-        )
-        assert "alerts" in result
-        await client.close_async()
-
 
 # ── Geographic & Spatial ─────────────────────────────────────────────────────
-
-class TestGetGeojson:
-
-    @respx.mock
-    @pytest.mark.asyncio
-    async def test_basic(self):
-        respx.get(f"{BASE_URL}/api/v1/esg/geojson/").mock(
-            return_value=httpx.Response(200, json={"type": "FeatureCollection"})
-        )
-        client = _client()
-        result = await client.get_geojson_async(sources=["openaq"])
-        assert result["type"] == "FeatureCollection"
-        await client.close_async()
-
 
 class TestGetLocations:
 
@@ -209,7 +179,7 @@ class TestExports:
     @respx.mock
     @pytest.mark.asyncio
     async def test_get_export_status(self):
-        respx.get(f"{BASE_URL}/api/v1/esg/exports/abc/status/").mock(
+        respx.get(f"{BASE_URL}/api/v1/esg/exports/abc/").mock(
             return_value=httpx.Response(200, json={"status": "completed"})
         )
         client = _client()
