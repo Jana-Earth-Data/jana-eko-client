@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 # Add the current directory to the path so we can import eko_client
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from eko_client import EkoUserClient, EkoAdminClient
+from eko_client import EkoUserClient
 from eko_client.exceptions import (
     EkoClientError,
     EkoAuthenticationError,
@@ -500,46 +500,6 @@ async def test_async_functionality(client):
         print_result(False, f"Concurrent requests failed: {e}")
 
 
-def test_admin_client():
-    """Test admin client functionality."""
-    print_section("Testing Admin Client")
-    
-    try:
-        # Create admin client without auto-login to avoid event loop issues
-        admin_client = EkoAdminClient(
-            base_url=BASE_URL,
-            token=TOKEN if TOKEN else None,
-            username=USERNAME if not TOKEN else None,
-            password=PASSWORD if not TOKEN else None
-        )
-        
-        print("\n1. Testing list_jobs...")
-        try:
-            jobs = admin_client.list_jobs(limit=5)
-            job_count = len(jobs.get('results', []))
-            print_result(True, f"Jobs listed: {job_count} jobs")
-        except Exception as e:
-            print_result(False, f"list_jobs failed: {e}")
-        
-        print("\n2. Testing list_data_sources...")
-        try:
-            sources = admin_client.list_data_sources(limit=5)
-            source_count = len(sources.get('results', []))
-            print_result(True, f"Data sources listed: {source_count} sources")
-        except Exception as e:
-            print_result(False, f"list_data_sources failed: {e}")
-        
-        print("\n3. Testing get_management_summary...")
-        try:
-            summary = admin_client.get_management_summary()
-            print_result(True, "Management summary retrieved")
-        except Exception as e:
-            print_result(False, f"get_management_summary failed: {e}")
-        
-    except Exception as e:
-        print_result(False, f"Admin client initialization failed: {e}")
-
-
 def test_error_handling(client):
     """Test error handling."""
     print_section("Testing Error Handling")
@@ -605,9 +565,6 @@ def main():
         asyncio.run(test_async_functionality(client))
     except Exception as e:
         print_result(False, f"Async tests failed: {e}")
-    
-    # Test admin client
-    test_admin_client()
     
     # Test error handling
     test_error_handling(client)

@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 from eko_client.client import BaseEkoClient
 from eko_client.user_client import EkoUserClient
-from eko_client.admin_client import EkoAdminClient
 
 
 BASE_URL = "https://test.jana.earth"
@@ -50,14 +49,6 @@ def user_client_dual():
         api_base_url=API_BASE_URL,
         token="test-token-abc123",
     )
-    yield client
-    client.close()
-
-
-@pytest.fixture
-def admin_client():
-    """EkoAdminClient with a pre-set DRF token (skip auto-login)."""
-    client = EkoAdminClient(base_url=BASE_URL, token="test-token-abc123")
     yield client
     client.close()
 

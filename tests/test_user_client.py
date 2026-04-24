@@ -137,38 +137,8 @@ class TestGetQuality:
         await client.close_async()
 
 
-class TestGetAlerts:
-
-    @respx.mock
-    @pytest.mark.asyncio
-    async def test_basic(self):
-        respx.get(f"{BASE_URL}/api/v1/esg/alerts/").mock(
-            return_value=httpx.Response(200, json={"alerts": []})
-        )
-        client = _client()
-        result = await client.get_alerts_async(
-            alert_types=["quality"],
-            date_from=datetime(2024, 1, 1),
-        )
-        assert "alerts" in result
-        await client.close_async()
-
 
 # ── Geographic & Spatial ─────────────────────────────────────────────────────
-
-class TestGetGeojson:
-
-    @respx.mock
-    @pytest.mark.asyncio
-    async def test_basic(self):
-        respx.get(f"{BASE_URL}/api/v1/esg/geojson/").mock(
-            return_value=httpx.Response(200, json={"type": "FeatureCollection"})
-        )
-        client = _client()
-        result = await client.get_geojson_async(sources=["openaq"])
-        assert result["type"] == "FeatureCollection"
-        await client.close_async()
-
 
 class TestGetLocations:
 
@@ -209,7 +179,7 @@ class TestExports:
     @respx.mock
     @pytest.mark.asyncio
     async def test_get_export_status(self):
-        respx.get(f"{BASE_URL}/api/v1/esg/exports/abc/status/").mock(
+        respx.get(f"{BASE_URL}/api/v1/esg/exports/abc/").mock(
             return_value=httpx.Response(200, json={"status": "completed"})
         )
         client = _client()
@@ -1050,3 +1020,529 @@ class TestNOAAStormEvents:
         result = client.get_noaa_storm_events(state="TEXAS", year=2023)
         assert result == OK
         client.close()
+
+
+# ── OpenAQ Detail Actions ───────────────────────────────────────────────────
+
+class TestOpenAQDetailActions:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_location_sensors(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/locations/42/sensors/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_location_sensors_async(42)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_location_flags(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/locations/42/flags/").mock(
+            return_value=httpx.Response(200, json={"flags": []})
+        )
+        client = _client()
+        result = await client.get_openaq_location_flags_async(42)
+        assert "flags" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_location_latest_measurements(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/locations/42/latest_measurements/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_location_latest_measurements_async(42)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_location_latest_measurements_with_datetime_min(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/locations/42/latest_measurements/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_location_latest_measurements_async(
+            42, datetime_min="2024-01-01T00:00:00Z"
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_measurements(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/measurements/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_measurements_async(7, limit=50, days=3)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_flags(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/flags/").mock(
+            return_value=httpx.Response(200, json={"flags": []})
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_flags_async(7)
+        assert "flags" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_hourly(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/hourly/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_hourly_async(
+            7, date_from=datetime(2024, 1, 1), date_to="2024-01-07"
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_daily(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/daily/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_daily_async(
+            7, date_from=datetime(2024, 1, 1), date_to=datetime(2024, 6, 30)
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_yearly(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/yearly/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_yearly_async(7)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_hour_of_day(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/hour-of-day/").mock(
+            return_value=httpx.Response(200, json={"hours": []})
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_hour_of_day_async(7)
+        assert "hours" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_day_of_week(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/day-of-week/").mock(
+            return_value=httpx.Response(200, json={"days": []})
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_day_of_week_async(7)
+        assert "days" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sensor_month_of_year(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/sensors/7/month-of-year/").mock(
+            return_value=httpx.Response(200, json={"months": []})
+        )
+        client = _client()
+        result = await client.get_openaq_sensor_month_of_year_async(7)
+        assert "months" in result
+        await client.close_async()
+
+
+# ── OpenAQ Reference Data ───────────────────────────────────────────────────
+
+class TestOpenAQReferenceData:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_providers(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/providers/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_providers_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_owners(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/owners/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_owners_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_manufacturers(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/manufacturers/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_manufacturers_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_instruments(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/instruments/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_instruments_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_licenses(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/licenses/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_openaq_licenses_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_stats(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/openaq/stats/").mock(
+            return_value=httpx.Response(200, json={"total_locations": 100})
+        )
+        client = _client()
+        result = await client.get_openaq_stats_async()
+        assert "total_locations" in result
+        await client.close_async()
+
+
+# ── Climate TRACE Detail Actions ────────────────────────────────────────────
+
+class TestClimateTRACEDetailActions:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sector_assets(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/sectors/5/assets/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_sector_assets_async(5)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_sector_emissions_summary(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/sectors/5/emissions_summary/").mock(
+            return_value=httpx.Response(200, json={"total_assets": 10, "total_co2e_tonnes": 99999})
+        )
+        client = _client()
+        result = await client.get_climatetrace_sector_emissions_summary_async(5)
+        assert "total_assets" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_country_assets(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/countries/12/assets/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_country_assets_async(12)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_asset_emissions(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/assets/100/emissions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_asset_emissions_async(100)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_asset_violations(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/assets/100/violations/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_asset_violations_async(100)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_aggregated_emissions(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/emissions/aggregated-emissions/").mock(
+            return_value=httpx.Response(200, json={"emissions": []})
+        )
+        client = _client()
+        result = await client.get_climatetrace_aggregated_emissions_async(
+            countries="USA,CHN", sectors="power", gas="co2", years="2020,2021"
+        )
+        assert "emissions" in result
+        await client.close_async()
+
+
+# ── Climate TRACE Annual Country Emissions ──────────────────────────────────
+
+class TestClimateTRACEAnnualCountryEmissions:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_basic(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/annual-country-emissions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_annual_country_emissions_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_with_filters(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/annual-country-emissions/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_annual_country_emissions_async(
+            country_iso3="USA", year=2020, sector="power",
+            gas_type="co2", ordering="-emissions_quantity", limit=50,
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+
+# ── Climate TRACE Definitions ───────────────────────────────────────────────
+
+class TestClimateTRACEDefinitions:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_subsectors(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/definitions/subsectors/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_definition_subsectors_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_groups(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/definitions/groups/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_definition_groups_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_continents(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/definitions/continents/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_definition_continents_async()
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_gases(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/definitions/gases/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_definition_gases_async()
+        assert result == OK
+        await client.close_async()
+
+
+# ── Climate TRACE Admin Areas ───────────────────────────────────────────────
+
+class TestClimateTRACEAdminAreas:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_search_admin_areas(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/admin-areas/search/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_admin_areas_search_async(
+            query="Nepal", level="country"
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_search_admin_areas_by_point(self):
+        route = respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/admin-areas/search/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_climatetrace_admin_areas_search_async(
+            point="85.3,27.7"
+        )
+        assert route.called
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_admin_area_geojson(self):
+        geojson = {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": []}}
+        respx.get(f"{BASE_URL}/api/v1/data-sources/climatetrace/admin-areas/NPL/geojson/").mock(
+            return_value=httpx.Response(200, json=geojson)
+        )
+        client = _client()
+        result = await client.get_climatetrace_admin_area_geojson_async("NPL")
+        assert result["type"] == "Feature"
+        await client.close_async()
+
+
+# ── EDGAR Air Pollutant Endpoints ───────────────────────────────────────────
+
+class TestEDGARAirPollutant:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_air_pollutant_totals(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/edgar/air-pollutant-totals/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_edgar_air_pollutant_totals_async(
+            country_code="USA", year=2022, gas="NOx", limit=10,
+        )
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_air_pollutant_grid(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/edgar/air-pollutant-grid/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_edgar_air_pollutant_grid_async(
+            year=2022, gas="SO2", bbox="80,26,88,30", limit=10,
+        )
+        assert result == OK
+        await client.close_async()
+
+
+# ── ESG Analytics & Statistics ──────────────────────────────────────────────
+
+class TestESGAnalyticsStatistics:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_analytics(self):
+        respx.get(f"{BASE_URL}/api/v1/esg/analytics/").mock(
+            return_value=httpx.Response(200, json={"correlations": []})
+        )
+        client = _client()
+        result = await client.get_analytics_async(
+            country_codes=["NPL"], temporal_window_days=30,
+        )
+        assert "correlations" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_openaq_statistics(self):
+        respx.get(f"{BASE_URL}/api/v1/esg/openaq-statistics/").mock(
+            return_value=httpx.Response(200, json={"locations": 50})
+        )
+        client = _client()
+        result = await client.get_openaq_statistics_async(country_codes=["NPL"])
+        assert "locations" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_climatetrace_statistics(self):
+        respx.get(f"{BASE_URL}/api/v1/esg/climatetrace-statistics/").mock(
+            return_value=httpx.Response(200, json={"assets": 200})
+        )
+        client = _client()
+        result = await client.get_climatetrace_statistics_async(country_codes=["NPL"])
+        assert "assets" in result
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_table_statistics(self):
+        respx.get(f"{BASE_URL}/api/v1/esg/statistics/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_table_statistics_async(limit=10)
+        assert result == OK
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_export_data_sync(self):
+        respx.get(f"{BASE_URL}/api/v1/esg/export/").mock(
+            return_value=httpx.Response(200, json={"data": []})
+        )
+        client = _client()
+        result = await client.export_data_sync_async(
+            sources=["openaq"],
+            country_codes=["NPL"],
+            date_from=datetime(2024, 1, 1),
+            output_format="json",
+        )
+        assert "data" in result
+        await client.close_async()
+
+
+# ── GLEIF Detail Actions ────────────────────────────────────────────────────
+
+class TestGLEIFDetailActions:
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_entity_asset_matches(self):
+        respx.get(f"{BASE_URL}/api/v1/data-sources/gleif/entities/HWUPKR0MPOU8FGXBT394/asset-matches/").mock(
+            return_value=httpx.Response(200, json=OK)
+        )
+        client = _client()
+        result = await client.get_gleif_entity_asset_matches_async("HWUPKR0MPOU8FGXBT394")
+        assert result == OK
+        await client.close_async()
