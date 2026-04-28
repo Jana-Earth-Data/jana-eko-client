@@ -422,6 +422,110 @@ class TestIsAuthenticated:
         client.close()
 
 
+# ── logout / logout_async (issue #27 — ghost JWT regression) ────────────────
+
+class TestJwtLogout:
+    """Regression tests for jana-eko-client #27.
+
+    Before the JwtAuthMixin.logout override, EkoUserClient inherited
+    BaseEkoClient.logout which only cleared self.token (the DRF token) and
+    left self.access_token / self.refresh_token populated. Subsequent
+    requests would still send Authorization: Bearer <stale-jwt>. These
+    tests pin the fixed behaviour: after logout(), all three credential
+    slots are None and is_authenticated() returns False.
+    """
+
+    @respx.mock
+    def test_sync_logout_clears_jwt_pair_and_token(self):
+        respx.post(f"{BASE_URL}/api/auth/logout/").mock(
+            return_value=httpx.Response(200, json={"detail": "ok"})
+        )
+        client = EkoUserClient(base_url=BASE_URL, token="drf-tok")
+        client.access_token = "jwt-access"
+        client.refresh_token = "jwt-refresh"
+
+        client.logout()
+
+        assert client.access_token is None
+        assert client.refresh_token is None
+        assert client.token is None
+        assert client.is_authenticated() is False
+        # Confirm the post-logout header has no Authorization field
+        assert "Authorization" not in client._get_headers()
+        client.close()
+
+    @respx.mock
+    def test_sync_logout_swallows_server_errors(self):
+        """A 500 from /api/auth/logout/ must not raise — local creds still cleared."""
+        respx.post(f"{BASE_URL}/api/auth/logout/").mock(
+            return_value=httpx.Response(500, json={"error": "server-side"})
+        )
+        client = EkoUserClient(base_url=BASE_URL, token="drf-tok")
+        client.access_token = "jwt-access"
+        client.refresh_token = "jwt-refresh"
+
+        # Must not raise
+        client.logout()
+
+        assert client.access_token is None
+        assert client.refresh_token is None
+        assert client.token is None
+        client.close()
+
+    def test_sync_logout_no_network_call_when_no_credentials(self):
+        """If no token and no access_token, logout() does nothing network-side
+        and remains a no-op for credential state."""
+        client = EkoUserClient(base_url=BASE_URL)
+        client.token = None
+        client.access_token = None
+        client.refresh_token = None
+
+        # No respx mock registered — if logout tried to POST, respx would 404.
+        # Plain call should not raise.
+        client.logout()
+
+        assert client.access_token is None
+        assert client.refresh_token is None
+        assert client.token is None
+        client.close()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_async_logout_clears_jwt_pair_and_token(self):
+        respx.post(f"{BASE_URL}/api/auth/logout/").mock(
+            return_value=httpx.Response(200, json={"detail": "ok"})
+        )
+        client = EkoUserClient(base_url=BASE_URL, token="drf-tok")
+        client.access_token = "jwt-a"
+        client.refresh_token = "jwt-r"
+
+        await client.logout_async()
+
+        assert client.access_token is None
+        assert client.refresh_token is None
+        assert client.token is None
+        assert client.is_authenticated() is False
+        await client.close_async()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_async_logout_swallows_server_errors(self):
+        respx.post(f"{BASE_URL}/api/auth/logout/").mock(
+            return_value=httpx.Response(500, json={"error": "server-side"})
+        )
+        client = EkoUserClient(base_url=BASE_URL, token="drf-tok")
+        client.access_token = "jwt-a"
+        client.refresh_token = "jwt-r"
+
+        # Must not raise
+        await client.logout_async()
+
+        assert client.access_token is None
+        assert client.refresh_token is None
+        assert client.token is None
+        await client.close_async()
+
+
 # ── login_password_async error paths ────────────────────────────────────────
 
 class TestLoginPasswordAsyncErrors:
