@@ -467,6 +467,48 @@ class JwtAuthMixin:
         return response.get("data") or response
 
     # ------------------------------------------------------------------
+    # Logout — override BaseEkoClient.logout() so JWT pair is also cleared
+    # ------------------------------------------------------------------
+
+    def logout(self) -> None:
+        """
+        Logout and clear all stored credentials.
+
+        Overrides :meth:`BaseEkoClient.logout` so that both the DRF token
+        (``self.token``) **and** the JWT pair (``self.access_token`` /
+        ``self.refresh_token``) are cleared. The base implementation only
+        clears ``self.token``, which would leave a stale JWT in memory and
+        cause subsequent requests to send ``Authorization: Bearer <stale>``
+        even after logout — see jana-eko-client #27.
+
+        POSTs to ``/api/auth/logout/`` to invalidate the server-side session
+        if any access token is currently held. Errors during the network
+        round-trip are logged and swallowed — local credential cleanup must
+        always succeed.
+        """
+        if self.access_token or getattr(self, "token", None):
+            try:
+                self._request_sync("POST", "/api/auth/logout/")
+            except (EkoAPIError, EkoAuthenticationError) as exc:
+                logger.warning(f"Error during logout (ignored): {exc}")
+        self.access_token = None
+        self.refresh_token = None
+        if hasattr(self, "token"):
+            self.token = None
+
+    async def logout_async(self) -> None:
+        """Async version of :meth:`logout`. See that method for details."""
+        if self.access_token or getattr(self, "token", None):
+            try:
+                await self._request_async("POST", "/api/auth/logout/")
+            except (EkoAPIError, EkoAuthenticationError) as exc:
+                logger.warning(f"Error during logout (ignored): {exc}")
+        self.access_token = None
+        self.refresh_token = None
+        if hasattr(self, "token"):
+            self.token = None
+
+    # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
