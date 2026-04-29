@@ -67,6 +67,12 @@ disallow_untyped_defs = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "integration: live-API tests that hit api-test.jana.earth (skipped by default; nightly CI runs them)",
+]
+# Default selection skips integration tests. Run with
+# `pytest -m integration tests/integration/` to opt in.
+addopts = "-m 'not integration'"
 
 [tool.coverage.run]
 source = ["eko_client"]
