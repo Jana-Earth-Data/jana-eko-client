@@ -1,0 +1,49 @@
+name: Nightly contract test (live API)
+
+# Runs the ``tests/integration/`` suite against api-test.jana.earth at
+# 04:00 UTC = 09:45 NPT. The dev environment is scheduled up between
+# 06:00 and 22:00 NPT, so 09:45 NPT is comfortably inside the window.
+#
+# The job uses a service-account email/password stored in repo secrets:
+#
+#   EKO_TEST_USER          — service-account email
+#   EKO_TEST_PASSWORD      — service-account password
+#
+# Failures are recorded as a normal Actions run (visible in the
+# repo "Actions" tab). No paging — this is a contract canary, not a
+# production health check.
+
+on:
+  schedule:
+    # 04:00 UTC every day = 09:45 NPT (dev env scheduled up 06:00-22:00 NPT)
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    # Allow manual triggering from the Actions tab for debugging.
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run live-API contract tests
+        env:
+          EKO_TEST_USER: ${{ secrets.EKO_TEST_USER }}
+          EKO_TEST_PASSWORD: ${{ secrets.EKO_TEST_PASSWORD }}
+          EKO_AUTH_BASE_URL: https://auth-dev.jana.earth
+          EKO_API_BASE_URL: https://api-test.jana.earth
+        run: |
+          pytest -m integration tests/integration/ -v --tb=short
