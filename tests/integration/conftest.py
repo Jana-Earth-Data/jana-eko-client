@@ -33,20 +33,29 @@ def live_credentials():
     return email, password
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def live_client(live_credentials):
     """JWT-authenticated EkoUserClient pointed at api-test.jana.earth.
 
     Uses the JWT auth path (auth-dev for ``/api/auth/*``, api-test for
-    everything else). The client logs in once per test session via
-    :meth:`JwtAuthMixin.login_password`, which posts ``{email, password}``
-    to ``/api/auth/login/`` and stores ``access_token`` / ``refresh_token``.
+    everything else). Each test gets a fresh client (function scope) and a
+    fresh JWT login via :meth:`JwtAuthMixin.login_password`, which posts
+    ``{email, password}`` to ``/api/auth/login/`` and stores
+    ``access_token`` / ``refresh_token``.
 
-    Note: we deliberately do NOT pass ``username``/``password`` to the
-    constructor. The base ``BaseEkoClient.__init__`` auto-login path uses
-    the legacy DRF token endpoint (``{username, password}`` payload), which
-    the JWT auth server rejects with HTTP 400. We must explicitly call
-    ``login_password`` after construction to use the JWT flow.
+    Why function scope (not session):
+        ``EkoUserClient`` lazily creates an ``httpx.AsyncClient`` on first
+        async use, binding it to the current event loop. pytest-asyncio
+        creates a new event loop per test by default, so a session-scoped
+        client breaks on the second async test with
+        ``RuntimeError: Event loop is closed``. With only 4 nightly tests,
+        4 fresh logins is trivial overhead.
+
+    Why we don't pass username/password to the constructor:
+        ``BaseEkoClient.__init__`` auto-login routes through the legacy
+        DRF token endpoint (``{username, password}`` payload), which the
+        JWT auth server rejects with HTTP 400. We construct first, then
+        call ``login_password`` explicitly to use the JWT flow.
     """
     from eko_client.user_client import EkoUserClient
 
