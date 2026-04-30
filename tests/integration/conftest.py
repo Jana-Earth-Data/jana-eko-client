@@ -38,7 +38,15 @@ def live_client(live_credentials):
     """JWT-authenticated EkoUserClient pointed at api-test.jana.earth.
 
     Uses the JWT auth path (auth-dev for ``/api/auth/*``, api-test for
-    everything else). The client logs in once per test session.
+    everything else). The client logs in once per test session via
+    :meth:`JwtAuthMixin.login_password`, which posts ``{email, password}``
+    to ``/api/auth/login/`` and stores ``access_token`` / ``refresh_token``.
+
+    Note: we deliberately do NOT pass ``username``/``password`` to the
+    constructor. The base ``BaseEkoClient.__init__`` auto-login path uses
+    the legacy DRF token endpoint (``{username, password}`` payload), which
+    the JWT auth server rejects with HTTP 400. We must explicitly call
+    ``login_password`` after construction to use the JWT flow.
     """
     from eko_client.user_client import EkoUserClient
 
@@ -46,10 +54,7 @@ def live_client(live_credentials):
     client = EkoUserClient(
         base_url=AUTH_BASE_URL,
         api_base_url=API_BASE_URL,
-        # JWT login uses email/password kwargs on EkoUserClient. The
-        # constructor handles the login and stores the access token.
-        username=email,
-        password=password,
     )
+    client.login_password(email=email, password=password)
     yield client
     client.close()
