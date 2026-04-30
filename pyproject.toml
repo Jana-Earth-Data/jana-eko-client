@@ -37,6 +37,8 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "respx>=0.20.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
@@ -61,6 +63,24 @@ python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: live-API tests that hit api-test.jana.earth (skipped by default; nightly CI runs them)",
+]
+# Default selection skips integration tests. Run with
+# `pytest -m integration tests/integration/` to opt in.
+addopts = "-m 'not integration'"
+
+[tool.coverage.run]
+source = ["eko_client"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 85
 
 [tool.ruff]
 line-length = 100
