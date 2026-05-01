@@ -49,6 +49,22 @@ class TestClimateTraceLive:
         )
         assert "results" in result
 
+    async def test_emissions_country_iso3_filter_returns_200(self, live_client):
+        """Live ``/emissions/?country_iso3=USA`` returns 200.
+
+        Proves the server accepts the canonical ``country_iso3`` filter
+        name (post-Jana #161 Phase 2A). Pre-rename, the client sent
+        ``country_code``; both names are accepted on the server but
+        ``country_iso3`` matches the response model field, so #34
+        renamed the client kwarg accordingly. This test plus the matching
+        unit-level contract test in ``tests/contract/test_climatetrace.py``
+        lock in the new wire contract end-to-end.
+        """
+        result = await live_client.get_climatetrace_emissions_async(
+            country_iso3="USA", limit=2,
+        )
+        assert "results" in result
+
     async def test_emissions_unknown_param_returns_400(self, live_client):
         """Live ``/emissions/?gas_type=co2`` returns 400 with
         ``unknown_params`` in the payload (post-Phase-2A strict mode).

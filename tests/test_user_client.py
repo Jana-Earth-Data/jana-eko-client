@@ -534,7 +534,7 @@ class TestClimateTRACE:
         )
         client = _client()
         result = await client.get_climatetrace_assets_async(
-            sector_id=1, country_code="NPL",
+            sector_id=1, country_iso3="NPL",
         )
         assert result == OK
         await client.close_async()
@@ -547,7 +547,7 @@ class TestClimateTRACE:
         )
         client = _client()
         result = await client.get_climatetrace_emissions_async(
-            country_code="NPL",
+            country_iso3="NPL",
             gas="co2",
             date_from=datetime(2024, 1, 1),
         )
@@ -561,7 +561,7 @@ class TestClimateTRACE:
             return_value=httpx.Response(200, json={"earliest_date": "2015-01-01"})
         )
         client = _client()
-        result = await client.get_climatetrace_emissions_date_range_async(country_code="NPL")
+        result = await client.get_climatetrace_emissions_date_range_async(country_iso3="NPL")
         assert "earliest_date" in result
         await client.close_async()
 

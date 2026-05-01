@@ -741,15 +741,25 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
     async def get_climatetrace_assets_async(
         self,
         sector_id: Optional[int] = None,
-        country_code: Optional[str] = None,
+        country_iso3: Optional[str] = None,
         location_bbox: Optional[List[float]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Get Climate TRACE assets."""
+        """Get Climate TRACE assets.
+
+        Args:
+            sector_id: Filter by sector ID (server accepts both ``sector_id`` and ``sector``).
+            country_iso3: Filter by ISO 3-letter country code (e.g. ``'USA'``).
+                Renamed from ``country_code`` in v0.3.0 to match the server-side
+                Climate TRACE filter field. See jana-eko-client #34.
+            location_bbox: Bounding-box filter ``[min_lon, min_lat, max_lon, max_lat]``.
+            limit: Maximum results per page.
+            offset: Result offset for pagination.
+        """
         params = {
             'sector_id': sector_id,  # API now accepts both 'sector_id' and 'sector'
-            'country_code': country_code,
+            'country_iso3': country_iso3,
             'location_bbox': location_bbox,
             'limit': limit,
             'offset': offset,
@@ -761,7 +771,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         asset_id: Optional[int] = None,
         sector_id: Optional[int] = None,
         sector_name: Optional[str] = None,
-        country_code: Optional[str] = None,
+        country_iso3: Optional[str] = None,
         gas: Optional[str] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
@@ -771,21 +781,25 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         """Get Climate TRACE emissions.
 
         Args:
-            asset_id: Filter by asset ID
-            sector_id: Filter by sector ID
-            sector_name: Filter by sector name
-            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
-            gas: Filter by gas type
-            date_from: Start date filter
-            date_to: End date filter
-            limit: Maximum results per page
-            offset: Result offset for pagination
+            asset_id: Filter by asset ID.
+            sector_id: Filter by sector ID.
+            sector_name: Filter by sector name. This is the server-side
+                canonical filter name on the Climate TRACE FilterSet
+                (``sector`` is *not* accepted — see jana-eko-client #34).
+            country_iso3: Filter by ISO 3-letter country code (e.g. ``'NPL'``).
+                Renamed from ``country_code`` in v0.3.0 to match the server-side
+                Climate TRACE filter field. See jana-eko-client #34.
+            gas: Filter by gas type.
+            date_from: Start date filter.
+            date_to: End date filter.
+            limit: Maximum results per page.
+            offset: Result offset for pagination.
         """
         params = {
             'asset_id': asset_id,
             'sector_id': sector_id,
             'sector_name': sector_name,
-            'country_code': country_code,
+            'country_iso3': country_iso3,
             'gas': gas,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
             'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
@@ -796,7 +810,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
 
     async def get_climatetrace_emissions_date_range_async(
         self,
-        country_code: Optional[str] = None,
+        country_iso3: Optional[str] = None,
         sector_name: Optional[str] = None,
         gas: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -805,19 +819,21 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         Uses SQL MIN/MAX aggregation for efficient date range detection.
 
         Args:
-            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
-            sector_name: Filter by sector name
-            gas: Filter by gas type
+            country_iso3: Filter by ISO 3-letter country code (e.g. ``'NPL'``).
+                Renamed from ``country_code`` in v0.3.0. See jana-eko-client #34.
+            sector_name: Filter by sector name. This is the server-side
+                canonical filter name on the Climate TRACE FilterSet.
+            gas: Filter by gas type.
 
         Returns:
-            Dictionary with 'earliest_date', 'latest_date', and 'total_records'
+            Dictionary with 'earliest_date', 'latest_date', and 'total_records'.
         """
-        params = {'country_code': country_code, 'sector_name': sector_name, 'gas': gas}
+        params = {'country_iso3': country_iso3, 'sector_name': sector_name, 'gas': gas}
         return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/date_range/', params=params)
 
     async def get_climatetrace_emissions_totals_async(
         self,
-        country_code: Optional[str] = None,
+        country_iso3: Optional[str] = None,
         sector_name: Optional[str] = None,
         gas: Optional[str] = None,
         date_from: Optional[Union[str, datetime]] = None,
@@ -830,18 +846,20 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         the filtered queryset. Without filters, it reads from a materialized view.
 
         Args:
-            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
-            sector_name: Filter by sector name
-            gas: Filter by gas type
-            date_from: Start date filter
-            date_to: End date filter
+            country_iso3: Filter by ISO 3-letter country code (e.g. ``'NPL'``).
+                Renamed from ``country_code`` in v0.3.0. See jana-eko-client #34.
+            sector_name: Filter by sector name. This is the server-side
+                canonical filter name on the Climate TRACE FilterSet.
+            gas: Filter by gas type.
+            date_from: Start date filter.
+            date_to: End date filter.
 
         Returns:
             Dictionary with 'total_co2e', 'total_co2', 'total_ch4', 'total_n2o',
-            'record_count', and 'avg_co2e'
+            'record_count', and 'avg_co2e'.
         """
         params = {
-            'country_code': country_code,
+            'country_iso3': country_iso3,
             'sector_name': sector_name,
             'gas': gas,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
@@ -851,7 +869,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
 
     async def get_climatetrace_emissions_sector_totals_async(
         self,
-        country_code: Optional[str] = None,
+        country_iso3: Optional[str] = None,
         gas: Optional[str] = None,
         date_from: Optional[Union[str, datetime]] = None,
         date_to: Optional[Union[str, datetime]] = None,
@@ -860,16 +878,19 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         Get emissions grouped by sector using SQL GROUP BY aggregation.
 
         Args:
-            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
-            gas: Filter by gas type
-            date_from: Start date filter
-            date_to: End date filter
+            country_iso3: Filter by ISO 3-letter country code (e.g. ``'NPL'``).
+                Renamed from ``country_code`` in v0.3.0. See jana-eko-client #34.
+            gas: Filter by gas type.
+            date_from: Start date filter.
+            date_to: End date filter.
 
         Returns:
-            List of dictionaries with 'sector_name', 'total_co2e', 'record_count', 'unique_assets'
+            List of dictionaries with 'sector_name', 'total_co2e', 'record_count',
+            'unique_assets'. (Response field names are unchanged; only the
+            request kwarg was renamed.)
         """
         params = {
-            'country_code': country_code,
+            'country_iso3': country_iso3,
             'gas': gas,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
             'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
@@ -902,19 +923,20 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
 
     async def get_climatetrace_emissions_gas_type_distribution_async(
         self,
-        country_code: Optional[str] = None,
+        country_iso3: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Get distribution of gas types across all emissions using SQL GROUP BY.
 
         Args:
-            country_code: Filter by ISO 3-letter country code (e.g. 'NPL')
+            country_iso3: Filter by ISO 3-letter country code (e.g. ``'NPL'``).
+                Renamed from ``country_code`` in v0.3.0. See jana-eko-client #34.
 
         Returns:
             Dictionary with 'total_records' and 'gas_types' list containing
-            'gas', 'record_count', 'percentage' for each gas type
+            'gas', 'record_count', 'percentage' for each gas type.
         """
-        params = {'country_code': country_code}
+        params = {'country_iso3': country_iso3}
         return await self._request_async('GET', '/api/v1/data-sources/climatetrace/emissions/gas_type_distribution/', params=params)
 
     async def get_climatetrace_company_matches_async(
