@@ -9,10 +9,19 @@ assert on:
 * Correct parsing of the three response shapes recorded in Step-7
   (``page_or_offset``, ``cursor``, ``flat-dict``)
 
-Where the client kwarg name **disagrees** with the server filter name,
-the test is marked ``xfail(strict=True)`` with a reference to issue #34.
-That way, when the rename lands, the test flips to ``XPASS`` and the
-xfail can be removed in the same PR.
+As of v0.3.0 (jana-eko-client #34), the client kwarg ``country_code``
+was renamed to ``country_iso3`` on every Climate TRACE method, matching
+the server's canonical filter field name from Jana #161 Phase 2A. The
+rename is a hard break — passing the legacy name raises ``TypeError``.
+The ``test_emissions_legacy_country_code_kwarg_raises_typeerror`` test
+pins that contract so any future re-introduction of a backwards-compat
+alias forces an explicit test update.
+
+Note on ``sector_name``: live probing in this PR confirmed the server
+canonical name on the Climate TRACE FilterSet is still ``sector_name``
+(not ``sector``). The original audit assumed otherwise; the client
+kwarg therefore stays as ``sector_name`` to match the wire. Tracking
+adding a ``sector`` alias on the server in a follow-up Jana issue.
 
 The fixture seed (``STEP7_FIXTURES``) is loaded from the audit artifact
 ``eko_step7_probe_results_20260428.json`` so we can always trace a test
@@ -137,57 +146,43 @@ class TestClimateTraceQueryParams:
         assert route.called
         assert_query_params(route.calls.last.request, {"gas": "co2"})
 
-    async def test_emissions_current_country_code_kwarg_silent_ignore(
+    async def test_emissions_legacy_country_code_kwarg_raises_typeerror(
+        self, user_client_dual
+    ):
+        """Legacy kwarg ``country_code`` must raise ``TypeError`` post-#34.
+
+        v0.3.0 renamed ``country_code`` → ``country_iso3`` on every CT
+        method (jana-eko-client #34). Option A — hard break — was chosen
+        deliberately over a deprecation shim, so any caller still passing
+        ``country_code`` must surface immediately as ``TypeError`` rather
+        than silently sending it on the wire (where the server would
+        either silently drop it pre-#161, or 400 post-Phase-2A).
+
+        This test pins the breaking-change behaviour so that anyone who
+        later restores a backwards-compat alias has to update this test
+        (and explain why they regressed the canonical-only contract).
+        """
+        with pytest.raises(TypeError):
+            await user_client_dual.get_climatetrace_emissions_async(
+                country_code="USA"  # legacy kwarg, removed in v0.3.0
+            )
+
+    async def test_emissions_country_iso3_kwarg_goes_on_wire_as_country_iso3(
         self, mock_api, user_client_dual
     ):
-        """**Today's** behaviour: client kwarg ``country_code`` is sent
-        as the ``country_code`` query param, and the server silently
-        ignores it (returns unfiltered data with HTTP 200).
+        """v0.3.0 contract: ``country_iso3`` kwarg → ``country_iso3`` query param.
 
-        This test pins the bug as it stands so the v0.3.0 rename PR
-        (jana-eko-client #34) breaks it loudly. When #34 lands, this
-        test should be replaced by ``test_emissions_country_iso3_*``
-        below.
+        Confirmed against the live API by the #161 Phase-2A migration
+        (server now requires the canonical name; the old ``country_code``
+        alias was retired). This test was previously xfail-strict against
+        TypeError — it now passes naturally because v0.3.0 of this client
+        renamed the kwarg.
         """
         body = make_paginated_response("cursor", results=[])
         route = mock_api.get(
             f"{API_BASE_URL}/api/v1/data-sources/climatetrace/emissions/"
         ).mock(return_value=httpx.Response(200, json=body))
 
-        await user_client_dual.get_climatetrace_emissions_async(
-            country_code="USA"
-        )
-
-        assert route.called
-        # Pin current (buggy) behaviour: param goes on the wire as
-        # ``country_code``, NOT ``country_iso3``.
-        assert_query_params(
-            route.calls.last.request, {"country_code": "USA"}
-        )
-
-    @pytest.mark.xfail(
-        strict=True,
-        raises=TypeError,
-        reason=(
-            "jana-eko-client #34: client kwarg is `country_code` but the "
-            "Climate TRACE server expects `country_iso3`. This xfail "
-            "documents the v0.3.0 target — the kwarg `country_iso3` "
-            "should exist and serialise as `country_iso3` on the wire. "
-            "When the rename lands, this xfail flips to XPASS and "
-            "should be promoted to a regular passing test."
-        ),
-    )
-    async def test_emissions_country_iso3_kwarg_goes_on_wire_as_country_iso3(
-        self, mock_api, user_client_dual
-    ):
-        """Target contract for v0.3.0: ``country_iso3`` kwarg → ``country_iso3`` param."""
-        body = make_paginated_response("cursor", results=[])
-        route = mock_api.get(
-            f"{API_BASE_URL}/api/v1/data-sources/climatetrace/emissions/"
-        ).mock(return_value=httpx.Response(200, json=body))
-
-        # NOTE: this call deliberately uses the v0.3.0 kwarg name.
-        # Until #34 lands, this raises TypeError (unexpected kwarg).
         await user_client_dual.get_climatetrace_emissions_async(
             country_iso3="USA"
         )
@@ -197,13 +192,38 @@ class TestClimateTraceQueryParams:
             route.calls.last.request, {"country_iso3": "USA"}
         )
 
+    async def test_emissions_sector_name_kwarg_goes_on_wire_as_sector_name(
+        self, mock_api, user_client_dual
+    ):
+        """``sector_name`` kwarg → ``sector_name`` query param.
+
+        Live probing during #34 confirmed the server's canonical filter
+        on the Climate TRACE FilterSet is still ``sector_name`` (not
+        ``sector``). The client therefore keeps ``sector_name`` as the
+        kwarg to match the wire. If a future server release adds
+        ``sector`` as an alias, this test should be updated alongside.
+        """
+        body = make_paginated_response("cursor", results=[])
+        route = mock_api.get(
+            f"{API_BASE_URL}/api/v1/data-sources/climatetrace/emissions/"
+        ).mock(return_value=httpx.Response(200, json=body))
+
+        await user_client_dual.get_climatetrace_emissions_async(
+            sector_name="power"
+        )
+
+        assert route.called
+        assert_query_params(
+            route.calls.last.request, {"sector_name": "power"}
+        )
+
     async def test_emissions_drops_none_kwargs_from_wire(
         self, mock_api, user_client_dual
     ):
         """``None`` kwargs must never reach the wire.
 
         DRF filtersets treat the literal string ``"None"`` as a value, so
-        if a client serialised ``country_code=None`` it would silently
+        if a client serialised ``country_iso3=None`` it would silently
         filter to country code ``"None"`` (returning zero rows).
         """
         body = make_paginated_response("cursor", results=[])
@@ -213,12 +233,12 @@ class TestClimateTraceQueryParams:
 
         await user_client_dual.get_climatetrace_emissions_async(
             gas="co2",
-            country_code=None,
+            country_iso3=None,
             date_from=None,
         )
 
         assert route.called
-        # Only ``gas`` should be on the wire; ``country_code`` and
+        # Only ``gas`` should be on the wire; ``country_iso3`` and
         # ``date_from`` were ``None`` and must be dropped.
         assert_query_params(route.calls.last.request, {"gas": "co2"})
 
@@ -309,13 +329,18 @@ class TestClimateTraceStrictServer:
         """Server returns 400 ``{"unknown_params": [...]}`` → client raises."""
         from eko_client.exceptions import EkoAPIError
 
-        # This is what Step-7 probe ``ct-emissions-gas_type-co2-BUGGY``
-        # actually saw on 2026-04-28.
+        # This mirrors the response shape of Step-7 probe
+        # ``ct-emissions-gas_type-co2-BUGGY`` (2026-04-28), updated for
+        # the post-#161-Phase-2A canonical filter names. Live probing
+        # during #34 confirmed the server's actual ``allowed_params``
+        # includes both ``country_code`` and ``country_iso3`` and still
+        # uses ``sector_name`` (not ``sector``).
         error_body = {
             "detail": "Unknown query parameter(s): gas_type",
             "unknown_params": ["gas_type"],
             "allowed_params": [
-                "asset_id", "sector_id", "sector_name", "country_code",
+                "asset_id", "sector_id", "sector_name",
+                "country_code", "country_iso3",
                 "gas", "date_from", "date_to", "limit", "offset",
             ],
         }
