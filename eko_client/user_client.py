@@ -590,8 +590,6 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         radius_km: Optional[float] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        # --- Deprecated aliases (Jana #172) -----------------------------
-        country_code: Optional[str] = None,  # deprecated alias for country_iso2
     ) -> Dict[str, Any]:
         """Get OpenAQ sensors.
 
@@ -600,21 +598,20 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
             parameter: Filter by parameter name.
             country_iso2: Filter by ISO 3166-1 ALPHA-2 country code on the related
                 Location (e.g. 'US', 'NP'). OpenAQ uses alpha-2, NOT alpha-3.
+                Canonical-only (Jana #172): the legacy ``country_code`` kwarg
+                has been removed.
             location_bbox: Bounding box [min_lon, min_lat, max_lon, max_lat].
             coordinates: Point [lon, lat] (requires radius_km).
             radius_km: Radius in km around *coordinates*.
             limit: Max results to return.
             offset: Pagination offset.
-            country_code: **Deprecated** — use ``country_iso2`` instead. Earlier
-                docs incorrectly described this as an ISO3 code; OpenAQ is alpha-2.
         """
         bbox_str = ','.join(str(v) for v in location_bbox) if location_bbox else None
         coords_str = ','.join(str(v) for v in coordinates) if coordinates else None
-        country = country_iso2 if country_iso2 is not None else country_code
         params = {
             'location_id': location_id,
             'parameter__name': parameter,
-            'location__country_iso2': country,
+            'location__country_iso2': country_iso2,
             'bbox': bbox_str,
             'coordinates': coords_str,
             'radius': radius_km,
@@ -640,8 +637,6 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         page_size: Optional[int] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        # --- Deprecated aliases (Jana #172) -----------------------------
-        country_code: Optional[str] = None,  # deprecated alias for country_iso2
     ) -> Dict[str, Any]:
         """Get OpenAQ measurements.
 
@@ -651,21 +646,20 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
             date_from: Start date (ISO 8601 string or datetime).
             date_to: End date (ISO 8601 string or datetime).
             country_iso2: Filter by ISO 3166-1 ALPHA-2 country code (e.g. 'US', 'NP').
-                OpenAQ uses alpha-2, NOT alpha-3.
+                OpenAQ uses alpha-2, NOT alpha-3. Canonical-only (Jana #172):
+                the legacy ``country_code`` kwarg has been removed.
             ordering: Sort field (e.g. 'measured_at', '-measured_at').
             page: Page number (1-based, used with page_size).
             page_size: Number of results per page.
             limit: Alias for page_size (backward compatibility).
             offset: Result offset (backward compatibility).
-            country_code: **Deprecated** — use ``country_iso2`` instead (Jana #172).
         """
-        country = country_iso2 if country_iso2 is not None else country_code
         params = {
             'location_id': location_id,
             'parameter_name': parameter,
             'date_from': date_from.isoformat() if isinstance(date_from, datetime) else date_from,
             'date_to': date_to.isoformat() if isinstance(date_to, datetime) else date_to,
-            'location__country_iso2': country,
+            'location__country_iso2': country_iso2,
             'ordering': ordering,
             'page': page,
             'page_size': page_size or limit,
@@ -1024,25 +1018,23 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         provisional: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        # --- Deprecated aliases (Jana #172) -----------------------------
-        country_code: Optional[str] = None,  # deprecated alias for country_iso3
     ) -> Dict[str, Any]:
         """Get EDGAR country totals.
 
         Args:
             country_iso3: ISO 3166-1 alpha-3 country code (e.g. 'USA', 'NPL').
+                Canonical-only (Jana #172): the legacy ``country_code`` kwarg
+                has been removed.
             year: Calendar year.
-            gas: Gas type (e.g. 'co2', 'ch4', 'n2o'). Server alias for ``gas_type``.
+            gas: Gas type (e.g. 'co2', 'ch4', 'n2o'). Canonical name; the
+                legacy server param ``gas_type`` is no longer accepted.
             sector: EDGAR sector slug.
             provisional: Whether the record is provisional.
             limit: Results per page.
             offset: Pagination offset.
-            country_code: **Deprecated** — use ``country_iso3`` instead. Kept for
-                backward compatibility with v0.x callers (Jana #172 platform-canonical
-                naming). Server still accepts it as an alias.
         """
         params = {
-            'country_iso3': country_iso3 if country_iso3 is not None else country_code,
+            'country_iso3': country_iso3,
             'year': year,
             'gas': gas,
             'sector': sector,
@@ -1119,17 +1111,16 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         provisional: Optional[bool] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        # --- Deprecated aliases (Jana #172) -----------------------------
-        country_code: Optional[str] = None,  # deprecated alias for country_iso3
     ) -> Dict[str, Any]:
         """Get EDGAR fasttrack data.
 
         Args:
             country_iso3: ISO 3166-1 alpha-3 country code (e.g. 'USA').
-            country_code: **Deprecated** — use ``country_iso3`` instead (Jana #172).
+                Canonical-only (Jana #172): the legacy ``country_code`` kwarg
+                has been removed.
         """
         params = {
-            'country_iso3': country_iso3 if country_iso3 is not None else country_code,
+            'country_iso3': country_iso3,
             'year': year,
             'gas': gas,
             'sector': sector,
@@ -1291,8 +1282,6 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         budget_version: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        # --- Deprecated aliases (Jana #172) -----------------------------
-        country_code: Optional[str] = None,  # deprecated alias for country_iso3
     ) -> Dict[str, Any]:
         """Get GCP national CO2 emissions.
 
@@ -1301,17 +1290,18 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
 
         Args:
             country_iso3: ISO 3166-1 alpha-3 country code (e.g. 'USA', 'CHN', 'IND').
+                Canonical-only (Jana #172): the legacy ``country_code`` kwarg
+                has been removed.
             year: Emission year (e.g. 2020).
             budget_version: GCP budget version (e.g. '2024').
             limit: Results per page.
             offset: Pagination offset.
-            country_code: **Deprecated** — use ``country_iso3`` instead (Jana #172).
 
         Returns:
             Paginated response with national emissions records.
         """
         params = {
-            'country_iso3': country_iso3 if country_iso3 is not None else country_code,
+            'country_iso3': country_iso3,
             'year': year,
             'budget_version': budget_version,
             'limit': limit,
@@ -1790,7 +1780,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         country_iso3: Optional[str] = None,
         year: Optional[int] = None,
         sector: Optional[str] = None,
-        gas_type: Optional[str] = None,
+        gas: Optional[str] = None,
         search: Optional[str] = None,
         ordering: Optional[str] = None,
         limit: Optional[int] = None,
@@ -1801,8 +1791,10 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         Args:
             country_iso3: ISO-3 country code (e.g. 'USA').
             year: Emission year.
-            sector: Sector name filter.
-            gas_type: Gas type filter.
+            sector: Sector name filter (this endpoint accepts ``sector``,
+                not ``sector_name``).
+            gas: Gas filter (e.g. 'co2', 'ch4', 'n2o'). Canonical-only
+                (Jana #172): the legacy ``gas_type`` kwarg has been removed.
             search: Search country_name or country_iso3.
             ordering: Sort field (year, emissions_quantity, country_iso3).
             limit: Results per page.
@@ -1815,7 +1807,7 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
             'country_iso3': country_iso3,
             'year': year,
             'sector': sector,
-            'gas_type': gas_type,
+            'gas': gas,
             'search': search,
             'ordering': ordering,
             'limit': limit,
@@ -1895,26 +1887,25 @@ class EkoUserClient(JwtAuthMixin, BaseEkoClient):
         ordering: Optional[str] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        # --- Deprecated aliases (Jana #172) -----------------------------
-        country_code: Optional[str] = None,  # deprecated alias for country_iso3
     ) -> Dict[str, Any]:
         """Get EDGAR air pollutant country totals.
 
         Args:
             country_iso3: ISO 3166-1 alpha-3 country code (e.g. 'USA').
+                Canonical-only (Jana #172): the legacy ``country_code`` kwarg
+                has been removed.
             year: Emission year.
             gas: Pollutant type (e.g. 'NOx', 'SO2', 'CO', 'PM2.5').
             sector: EDGAR sector code.
-            ordering: Sort field (country_code, year, gas, sector, value, ingested_at).
+            ordering: Sort field (country_iso3, year, gas, sector, value, ingested_at).
             limit: Results per page.
             offset: Pagination offset.
-            country_code: **Deprecated** — use ``country_iso3`` instead (Jana #172).
 
         Returns:
             Paginated response (cursor-based) with air pollutant total records.
         """
         params = {
-            'country_iso3': country_iso3 if country_iso3 is not None else country_code,
+            'country_iso3': country_iso3,
             'year': year,
             'gas': gas,
             'sector': sector,

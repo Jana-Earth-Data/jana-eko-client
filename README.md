@@ -206,7 +206,7 @@ Client for accessing all unified environmental data APIs.
 - `get_climatetrace_emissions()` - Get Climate TRACE emissions
 - `get_climatetrace_sector_assets(id)` - Assets within a sector
 - `get_climatetrace_sector_emissions_summary(id)` - Sector emission summary
-- `get_climatetrace_country_assets(country_code)` - Assets within a country
+- `get_climatetrace_country_assets(country_id)` - Assets within a country
 - `get_climatetrace_asset_emissions(id)` - Emissions for an asset
 - `get_climatetrace_asset_violations(id)` - Violations for an asset
 - `get_climatetrace_aggregated_emissions()` - Aggregated emission records

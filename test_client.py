@@ -302,8 +302,9 @@ def test_source_specific_endpoints(client):
         # Test with filters
         print(f"   3a. Testing get_climatetrace_assets with country filter...")
         try:
+            # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
             filtered_assets = client.get_climatetrace_assets(
-                country_code="USA",
+                country_iso3="USA",
                 limit=5
             )
             filtered_count = len(filtered_assets.get('results', []))
@@ -388,8 +389,9 @@ def test_source_specific_endpoints(client):
         # Test with filters
         print(f"   1a. Testing get_edgar_country_totals with filters...")
         try:
+            # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
             filtered_totals = client.get_edgar_country_totals(
-                country_code="USA",
+                country_iso3="USA",
                 year=2023,
                 gas="CO2",
                 limit=5
