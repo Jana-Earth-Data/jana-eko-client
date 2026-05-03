@@ -370,10 +370,11 @@ class TestOpenAQ:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
+        # Jana #172 canonical-only: 'country_iso2' is the only accepted kwarg.
         result = await client.get_openaq_sensors_async(
             location_id=1,
             parameter="pm25",
-            country_code="US",
+            country_iso2="US",
             location_bbox=[80, 26, 88, 30],
             coordinates=[85.3, 27.7],
             radius_km=10.0,
@@ -684,8 +685,9 @@ class TestEDGAR:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
+        # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
         result = await client.get_edgar_country_totals_async(
-            country_code="USA", year=2023, gas="CO2",
+            country_iso3="USA", year=2023, gas="CO2",
         )
         assert result == OK
         await client.close_async()
@@ -737,7 +739,8 @@ class TestEDGAR:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
-        result = client.get_edgar_country_totals(country_code="NPL")
+        # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
+        result = client.get_edgar_country_totals(country_iso3="NPL")
         assert result == OK
         client.close()
 
@@ -850,8 +853,9 @@ class TestGCPNationalEmissions:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
+        # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
         result = await client.get_gcp_national_emissions_async(
-            country_code="USA", year=2020, budget_version="2024", limit=100,
+            country_iso3="USA", year=2020, budget_version="2024", limit=100,
         )
         assert route.called
         assert result == OK
@@ -948,7 +952,8 @@ class TestGCPMethaneBudget:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
-        result = client.get_gcp_national_emissions(country_code="USA")
+        # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
+        result = client.get_gcp_national_emissions(country_iso3="USA")
         assert result == OK
         client.close()
 
@@ -1332,9 +1337,11 @@ class TestClimateTRACEAnnualCountryEmissions:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
+        # Jana #172 canonical-only: 'gas' is the only accepted kwarg
+        # (legacy 'gas_type' removed).
         result = await client.get_climatetrace_annual_country_emissions_async(
             country_iso3="USA", year=2020, sector="power",
-            gas_type="co2", ordering="-emissions_quantity", limit=50,
+            gas="co2", ordering="-emissions_quantity", limit=50,
         )
         assert route.called
         assert result == OK
@@ -1445,8 +1452,9 @@ class TestEDGARAirPollutant:
             return_value=httpx.Response(200, json=OK)
         )
         client = _client()
+        # Jana #172 canonical-only: 'country_iso3' is the only accepted kwarg.
         result = await client.get_edgar_air_pollutant_totals_async(
-            country_code="USA", year=2022, gas="NOx", limit=10,
+            country_iso3="USA", year=2022, gas="NOx", limit=10,
         )
         assert result == OK
         await client.close_async()
